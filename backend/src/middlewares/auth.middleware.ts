@@ -1,6 +1,7 @@
 import { Request, Response, NextFunction } from 'express';
 import jwt from 'jsonwebtoken';
 import User from '../models/user.model';
+import AuthService from '../services/auth.service';
 
 // Extend Express Request interface to include user
 export interface AuthRequest extends Request {
@@ -13,7 +14,14 @@ export const protect = async (req: AuthRequest, res: Response, next: NextFunctio
   if (req.headers.authorization && req.headers.authorization.startsWith('Bearer')) {
     try {
       token = req.headers.authorization.split(' ')[1];
-      const decoded: any = jwt.verify(token, process.env.JWT_SECRET || 'fallback_secret');
+      
+      // Verify access token
+      const decoded: any = AuthService.verifyAccessToken(token);
+      
+      if (!decoded) {
+        res.status(401);
+        throw new Error('Not authorized, token failed or expired');
+      }
 
       req.user = await User.findById(decoded.id).select('-password');
       if (!req.user) {
@@ -26,11 +34,9 @@ export const protect = async (req: AuthRequest, res: Response, next: NextFunctio
       res.status(401);
       next(new Error('Not authorized, token failed'));
     }
-  }
-
-  if (!token) {
+  } else {
     res.status(401);
-    next(new Error('Not authorized, no token'));
+    next(new Error('Not authorized, no token provided'));
   }
 };
 

@@ -1,6 +1,8 @@
 import { Request, Response } from 'express';
 import User from '../models/user.model';
 import { AuthRequest } from '../middlewares/auth.middleware';
+import redis from '../config/redis';
+import logger from '../utils/logger';
 
 // @desc    Get user profile
 // @route   GET /api/users/profile
@@ -55,7 +57,20 @@ export const updateUserProfile = async (req: AuthRequest, res: Response) => {
 // @route   GET /api/users/doctors
 // @access  Public
 export const getDoctors = async (req: Request, res: Response) => {
-  const doctors = await User.find({ role: 'doctor' }).select('-password');
+  const cacheKey = 'users:doctors:list';
+  const cachedDoctors = await redis.get(cacheKey);
+
+  if (cachedDoctors) {
+    res.json(JSON.parse(cachedDoctors));
+    return;
+  }
+
+  const doctors = await User.find({ role: 'doctor' })
+    .select('-password')
+    .lean();
+
+  await redis.set(cacheKey, JSON.stringify(doctors), 'EX', 300);
+  logger.info('cache_set', { cacheKey, ttlSeconds: 300, size: doctors.length });
   res.json(doctors);
 };
 

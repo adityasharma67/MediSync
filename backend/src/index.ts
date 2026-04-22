@@ -8,6 +8,7 @@ import { Server } from 'socket.io';
 import connectDB from './config/db';
 import logger from './utils/logger';
 import { errorHandler, notFound } from './middlewares/error.middleware';
+import { getMetricsSnapshot, requestMetrics } from './middlewares/requestMetrics.middleware';
 import authRoutes from './routes/auth.routes';
 import userRoutes from './routes/user.routes';
 import appointmentRoutes from './routes/appointment.routes';
@@ -15,6 +16,7 @@ import prescriptionRoutes from './routes/prescription.routes';
 import notificationRoutes from './routes/notification.routes';
 import { apiLimiter } from './middlewares/rateLimiter';
 import './config/redis'; // Initialize Redis connection
+import './workers/notification.worker';
 
 dotenv.config();
 
@@ -36,6 +38,7 @@ app.use(express.urlencoded({ extended: true }));
 app.use(cors());
 app.use(helmet());
 app.use(morgan('dev'));
+app.use(requestMetrics);
 
 // Connect to Database
 connectDB();
@@ -62,6 +65,14 @@ app.get('/', (req: Request, res: Response) => {
 // Health check
 app.get('/health', (req: Request, res: Response) => {
   res.json({ status: 'ok', timestamp: new Date().toISOString() });
+});
+
+app.get('/metrics', (req: Request, res: Response) => {
+  res.json({
+    service: 'medisync-backend',
+    metrics: getMetricsSnapshot(),
+    timestamp: new Date().toISOString(),
+  });
 });
 
 // Socket.io connection

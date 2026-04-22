@@ -353,6 +353,39 @@ docker build -t yourusername/medisync-backend ./backend
 docker push yourusername/medisync-backend
 ```
 
+## 🎯 Latest Updates (v1.0.1)
+
+### ✨ New Features
+- **Dual Token System** - Access tokens (15m) + Refresh tokens (7d) for enhanced security
+- **Password Reset Flow** - Secure email-based password recovery with 30-min expiry
+- **Advanced Error Handling** - Comprehensive error types with proper HTTP status codes
+- **Auth Service Layer** - Centralized token and email operations
+- **Loading Skeletons** - Reusable skeleton loaders for all loading states
+- **Enhanced Navbar** - Spring animations, gradient logos, improved dark mode
+
+### 🎨 UI/UX Improvements
+- **Modern Theme** - Purple/Violet + Cyan/Blue gradient color scheme
+- **Advanced Animations** - slideUp, scaleIn, float, glow effects
+- **Better Responsive Design** - Improved mobile experience
+- **Smooth Transitions** - Enhanced page transitions and interactions
+- **Glass-morphism** - Refined glass effect with better shadows
+
+### 🔐 Security Enhancements
+- Token hashing for secure storage
+- Refresh token rotation on login
+- Password strength validation (8+ chars, uppercase, numbers, special chars)
+- Email verification flow
+- Proper token expiration handling
+
+### 📚 Documentation
+- **DEPLOYMENT_GUIDE.md** - Complete deployment instructions for all platforms
+- **ENHANCEMENT_SUMMARY.md** - Detailed list of all improvements
+- **build-production.sh** - Automated production build script
+
+### See Also
+- [DEPLOYMENT_GUIDE.md](./DEPLOYMENT_GUIDE.md) - Complete deployment steps
+- [ENHANCEMENT_SUMMARY.md](./ENHANCEMENT_SUMMARY.md) - Detailed upgrade notes
+
 ## 📄 License
 
 This project is licensed under the MIT License.

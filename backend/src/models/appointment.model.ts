@@ -27,6 +27,8 @@ const appointmentSchema: Schema = new Schema(
 
 // Prevent double booking for the same doctor at the same time
 appointmentSchema.index({ doctor: 1, date: 1, time: 1 }, { unique: true });
+appointmentSchema.index({ patient: 1, date: -1 });
+appointmentSchema.index({ doctor: 1, status: 1, date: -1 });
 
 const Appointment = mongoose.model<IAppointment>('Appointment', appointmentSchema);
 export default Appointment;

@@ -1,6 +1,26 @@
 import { Response } from 'express';
 import Appointment from '../models/appointment.model';
 import { AuthRequest } from '../middlewares/auth.middleware';
+import { notificationQueue } from '../queues/notification.queue';
+import User from '../models/user.model';
+import { AppError } from '../middlewares/error.middleware';
+
+const combineDateTime = (dateValue: string | Date, time: string): Date => {
+  const date = new Date(dateValue);
+  if (Number.isNaN(date.getTime())) {
+    throw new AppError(400, 'Invalid date format');
+  }
+
+  const [hoursStr, minutesStr] = time.split(':');
+  const hours = Number(hoursStr);
+  const minutes = Number(minutesStr);
+  if (Number.isNaN(hours) || Number.isNaN(minutes)) {
+    throw new AppError(400, 'Invalid time format');
+  }
+
+  date.setHours(hours, minutes, 0, 0);
+  return date;
+};
 
 // @desc    Book an appointment
 // @route   POST /api/appointments
@@ -8,21 +28,68 @@ import { AuthRequest } from '../middlewares/auth.middleware';
 export const bookAppointment = async (req: AuthRequest, res: Response) => {
   const { doctorId, date, time } = req.body;
 
-  try {
-    const appointment = await Appointment.create({
-      patient: req.user._id,
-      doctor: doctorId,
-      date,
-      time,
-      status: 'scheduled',
-    });
+  if (req.user.role !== 'patient') {
+    throw new AppError(403, 'Only patients can book appointments');
+  }
 
-    res.status(201).json(appointment);
+  try {
+    // Atomic upsert prevents race conditions when multiple users target same slot.
+    const appointment = await Appointment.findOneAndUpdate(
+      { doctor: doctorId, date: new Date(date), time },
+      {
+        $setOnInsert: {
+          patient: req.user._id,
+          doctor: doctorId,
+          date: new Date(date),
+          time,
+          status: 'scheduled',
+        },
+      },
+      {
+        upsert: true,
+        new: true,
+        rawResult: true,
+      }
+    );
+
+    if (!appointment.lastErrorObject?.upserted) {
+      throw new AppError(409, 'This slot is already booked');
+    }
+
+    const createdAppointment = appointment.value;
+    if (!createdAppointment) {
+      throw new AppError(500, 'Failed to create appointment');
+    }
+
+    const [patient, doctor] = await Promise.all([
+      User.findById(req.user._id).select('name email'),
+      User.findById(doctorId).select('name'),
+    ]);
+
+    const appointmentDateTime = combineDateTime(date, time);
+    const reminderTime = new Date(appointmentDateTime.getTime() - 60 * 60 * 1000);
+
+    if (patient?.email) {
+      await notificationQueue.add(
+        'appointmentReminder',
+        {
+          email: patient.email,
+          appointmentDate: appointmentDateTime.toDateString(),
+          appointmentTime: time,
+          patientName: patient.name,
+          doctorName: doctor?.name || 'Doctor',
+        },
+        {
+          delay: Math.max(reminderTime.getTime() - Date.now(), 0),
+          jobId: `appointment-reminder-${createdAppointment._id}`,
+        }
+      );
+    }
+
+    res.status(201).json(createdAppointment);
   } catch (error: any) {
-    // Check for duplicate key error (double booking)
     if (error.code === 11000) {
-      res.status(400);
-      throw new Error('This slot is already booked');
+      throw new AppError(409, 'This slot is already booked');
     }
     throw error;
   }

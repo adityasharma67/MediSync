@@ -2,8 +2,15 @@
 
 import { motion } from "framer-motion";
 import Link from "next/link";
+import dynamic from "next/dynamic";
 import { ArrowRight, Video, Calendar, ShieldCheck, Activity } from "lucide-react";
-import Hero3D from "@/components/3d/Hero3D";
+
+const Hero3D = dynamic(() => import("@/components/3d/Hero3D"), {
+  ssr: false,
+  loading: () => (
+    <div className="absolute inset-0 animate-pulse bg-gradient-to-br from-primary-100/40 to-accent-100/30 dark:from-primary-900/20 dark:to-accent-900/10" />
+  ),
+});
 
 const features = [
   {

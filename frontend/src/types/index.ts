@@ -18,7 +18,15 @@ export interface AuthResponse {
   name: string;
   email: string;
   role: UserRole;
-  token: string;
+  avatar?: string;
+  accessToken: string;
+  refreshToken: string;
+  expiresIn: string;
+}
+
+export interface RefreshResponse {
+  accessToken: string;
+  expiresIn: string;
 }
 
 // Appointment Types
@@ -94,4 +102,15 @@ export interface DoctorAvailability {
   date: string;
   availableSlots: string[];
   bookedSlots: string[];
+}
+
+// Password Reset
+export interface ForgotPasswordPayload {
+  email: string;
+}
+
+export interface ResetPasswordPayload {
+  token: string;
+  newPassword: string;
+  confirmPassword: string;
 }

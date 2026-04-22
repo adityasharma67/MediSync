@@ -5,18 +5,20 @@ import {
   updateAppointment,
 } from '../controllers/appointment.controller';
 import { protect } from '../middlewares/auth.middleware';
+import { asyncHandler } from '../middlewares/error.middleware';
+import { validate } from '../middlewares/validate.middleware';
+import {
+  bookAppointmentSchema,
+  updateAppointmentSchema,
+} from '../validators/appointment.validator';
 
 const router = express.Router();
 
-const asyncHandler = (fn: any) => (req: express.Request, res: express.Response, next: express.NextFunction) => {
-  Promise.resolve(fn(req, res, next)).catch(next);
-};
-
 router.route('/')
-  .post(protect, asyncHandler(bookAppointment))
+  .post(protect, validate(bookAppointmentSchema), asyncHandler(bookAppointment))
   .get(protect, asyncHandler(getMyAppointments));
 
 router.route('/:id')
-  .put(protect, asyncHandler(updateAppointment));
+  .put(protect, validate(updateAppointmentSchema), asyncHandler(updateAppointment));
 
 export default router;

@@ -36,6 +36,9 @@ docker-compose up -d
 | [README.md](./README.md) | Project overview, features, and deployment guide |
 | [IMPLEMENTATION_GUIDE.md](./IMPLEMENTATION_GUIDE.md) | Developer guide for extending the codebase |
 | [PROJECT_COMPLETION_REPORT.md](./PROJECT_COMPLETION_REPORT.md) | Detailed completion status of all 16 requirements |
+| [DEPLOYMENT_GUIDE.md](./DEPLOYMENT_GUIDE.md) | End-to-end deployment instructions for local and cloud |
+| [CONFIGURATION_GUIDE.md](./CONFIGURATION_GUIDE.md) | Environment variable setup and production config |
+| [ENHANCEMENT_SUMMARY.md](./ENHANCEMENT_SUMMARY.md) | Summary of recent production enhancements |
 
 ---
 
@@ -239,6 +242,10 @@ frontend/
 POST /api/auth/signup          # Register new user
 POST /api/auth/login           # User login
 POST /api/auth/google          # Google OAuth
+POST /api/auth/refresh         # Refresh access token
+POST /api/auth/forgot-password # Request password reset
+POST /api/auth/reset-password  # Reset password with token
+POST /api/auth/logout          # Logout and revoke refresh token
 ```
 
 ### Users
@@ -505,3 +512,4 @@ Everything is ready to use. Choose your next step:
 ---
 
 **MediSync v1.0.0** - Ready for Production ✅
+**MediSync v1.0.1** - Ready for Production ✅
