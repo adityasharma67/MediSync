@@ -1,0 +1,60 @@
+version: '3.8'
+
+services:
+  mongodb:
+    image: mongo:7.0
+    container_name: medisync-mongodb
+    ports:
+      - "27017:27017"
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: admin
+      MONGO_INITDB_ROOT_PASSWORD: password
+    volumes:
+      - mongodb_data:/data/db
+    networks:
+      - medisync-network
+
+  redis:
+    image: redis:7.0-alpine
+    container_name: medisync-redis
+    ports:
+      - "6379:6379"
+    networks:
+      - medisync-network
+
+  backend:
+    build: ./backend
+    container_name: medisync-backend
+    ports:
+      - "5000:5000"
+    environment:
+      NODE_ENV: production
+      MONGODB_URI: mongodb://admin:password@mongodb:27017/medisync?authSource=admin
+      REDIS_URL: redis://redis:6379
+      JWT_SECRET: your_jwt_secret_key_here
+      OPENAI_API_KEY: ${OPENAI_API_KEY}
+    depends_on:
+      - mongodb
+      - redis
+    networks:
+      - medisync-network
+
+  frontend:
+    build: ./frontend
+    container_name: medisync-frontend
+    ports:
+      - "3000:3000"
+    environment:
+      NEXT_PUBLIC_BACKEND_URL: http://backend:5000
+      NEXT_PUBLIC_SOCKET_URL: http://backend:5000
+    depends_on:
+      - backend
+    networks:
+      - medisync-network
+
+volumes:
+  mongodb_data:
+
+networks:
+  medisync-network:
+    driver: bridge
