@@ -3,15 +3,14 @@
 import { motion } from "framer-motion";
 import Link from "next/link";
 import { ArrowLeft, Lock, EyeOff, Eye, CheckCircle } from "lucide-react";
-import { useState } from "react";
-import { useSearchParams, useRouter } from "next/navigation";
+import { useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
 import { apiClient } from "@/lib/api";
 import toast from "react-hot-toast";
 
 export default function ResetPasswordPage() {
-  const searchParams = useSearchParams();
   const router = useRouter();
-  const token = searchParams.get("token");
+  const [token, setToken] = useState<string | null>(null);
 
   const [newPassword, setNewPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
@@ -20,6 +19,13 @@ export default function ResetPasswordPage() {
   const [isLoading, setIsLoading] = useState(false);
   const [isSuccess, setIsSuccess] = useState(false);
   const [passwordStrength, setPasswordStrength] = useState(0);
+
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      const params = new URLSearchParams(window.location.search);
+      setToken(params.get('token'));
+    }
+  }, []);
 
   const calculatePasswordStrength = (password: string) => {
     let strength = 0;

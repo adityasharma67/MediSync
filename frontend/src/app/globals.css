@@ -82,7 +82,7 @@ body {
 }
 
 .btn-ghost {
-  @apply bg-white/10 borders border-white/20 hover:bg-white/20 text-white font-medium rounded-xl transition-all duration-300;
+  @apply bg-white/10 border border-white/20 hover:bg-white/20 text-white font-medium rounded-xl transition-all duration-300;
 }
 
 .dark .btn-ghost {

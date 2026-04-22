@@ -1,6 +1,6 @@
 'use client';
 
-import { ReactNode } from 'react';
+import { ReactNode, useEffect } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import useAuthStore from '@/store/authStore';
@@ -18,14 +18,18 @@ export default function DashboardLayout({
   const router = useRouter();
   const { user, logout } = useAuthStore();
 
-  // Check authorization
-  if (!user) {
-    router.push('/login');
-    return null;
-  }
+  useEffect(() => {
+    if (!user) {
+      router.push('/login');
+      return;
+    }
 
-  if (requiredRole && user.role !== requiredRole) {
-    router.push('/dashboard');
+    if (requiredRole && user.role !== requiredRole) {
+      router.push('/dashboard');
+    }
+  }, [requiredRole, router, user]);
+
+  if (!user || (requiredRole && user.role !== requiredRole)) {
     return null;
   }
 
@@ -34,12 +38,16 @@ export default function DashboardLayout({
       { label: 'Dashboard', href: '/dashboard' },
       { label: 'Book Appointment', href: '/appointments/book' },
       { label: 'My Appointments', href: '/appointments' },
+      { label: 'Messages', href: '/dashboard/messages' },
+      { label: 'Security', href: '/dashboard/security' },
       { label: 'Prescriptions', href: '/prescriptions' },
       { label: 'AI Symptom Checker', href: '/symptom-checker' },
     ],
     doctor: [
       { label: 'Dashboard', href: '/dashboard/doctor' },
       { label: 'My Appointments', href: '/appointments' },
+      { label: 'Messages', href: '/dashboard/messages' },
+      { label: 'Analytics', href: '/dashboard/analytics' },
       { label: 'Create Prescription', href: '/prescriptions/create' },
       { label: 'Availability', href: '/availability' },
     ],
@@ -47,7 +55,7 @@ export default function DashboardLayout({
       { label: 'Dashboard', href: '/dashboard/admin' },
       { label: 'Users', href: '/admin/users' },
       { label: 'Appointments', href: '/admin/appointments' },
-      { label: 'Analytics', href: '/admin/analytics' },
+      { label: 'Analytics', href: '/dashboard/analytics' },
     ],
   };
 

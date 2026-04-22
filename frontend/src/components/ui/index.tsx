@@ -1,4 +1,5 @@
 import { ReactNode } from 'react';
+import Link from 'next/link';
 import { motion } from 'framer-motion';
 import clsx from 'clsx';
 
@@ -11,6 +12,7 @@ interface ButtonProps {
   onClick?: () => void | Promise<void>;
   className?: string;
   type?: 'button' | 'submit' | 'reset';
+  href?: string;
 }
 
 export const Button = ({
@@ -21,6 +23,7 @@ export const Button = ({
   loading = false,
   className = '',
   type = 'button',
+  href,
   ...props
 }: ButtonProps) => {
   const baseStyles = 'font-semibold rounded-lg transition-all duration-200 flex items-center justify-center gap-2';
@@ -38,6 +41,23 @@ export const Button = ({
     lg: 'px-6 py-3 text-lg',
   };
 
+  const content = (
+    <>
+      {loading && <span className="animate-spin">...</span>}
+      {children}
+    </>
+  );
+
+  if (href) {
+    return (
+      <motion.div whileHover={{ scale: disabled ? 1 : 1.02 }} whileTap={{ scale: disabled ? 1 : 0.98 }}>
+        <Link href={href} className={clsx(baseStyles, variants[variant], sizes[size], className)}>
+          {content}
+        </Link>
+      </motion.div>
+    );
+  }
+
   return (
     <motion.button
       whileHover={{ scale: disabled ? 1 : 1.02 }}
@@ -47,8 +67,7 @@ export const Button = ({
       className={clsx(baseStyles, variants[variant], sizes[size], className)}
       {...props}
     >
-      {loading && <span className="animate-spin">⏳</span>}
-      {children}
+      {content}
     </motion.button>
   );
 };
@@ -62,14 +81,13 @@ interface InputProps extends React.InputHTMLAttributes<HTMLInputElement> {
 export const Input = ({ label, error, icon, className = '', ...props }: InputProps) => {
   return (
     <div className="w-full">
-      {label && <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">{label}</label>}
+      {label && <label className="mb-2 block text-sm font-medium text-gray-700 dark:text-gray-300">{label}</label>}
       <div className="relative">
-        {icon && <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400">{icon}</span>}
+        {icon && <span className="absolute left-3 top-1/2 -translate-y-1/2 transform text-gray-400">{icon}</span>}
         <input
           className={clsx(
-            'w-full px-4 py-2 border-2 border-gray-300 dark:border-gray-600 rounded-lg',
-            'focus:outline-none focus:border-primary-500 dark:focus:border-primary-400',
-            'dark:bg-gray-800 dark:text-white transition-colors',
+            'w-full rounded-lg border-2 border-gray-300 px-4 py-2 dark:border-gray-600',
+            'transition-colors focus:border-primary-500 focus:outline-none dark:bg-gray-800 dark:text-white dark:focus:border-primary-400',
             icon && 'pl-10',
             error && 'border-red-500',
             className
@@ -77,7 +95,7 @@ export const Input = ({ label, error, icon, className = '', ...props }: InputPro
           {...props}
         />
       </div>
-      {error && <p className="text-red-500 text-sm mt-1">{error}</p>}
+      {error && <p className="mt-1 text-sm text-red-500">{error}</p>}
     </div>
   );
 };
@@ -93,7 +111,7 @@ export const Card = ({ children, className = '', hoverable = false }: CardProps)
     <motion.div
       whileHover={hoverable ? { translateY: -4 } : {}}
       className={clsx(
-        'bg-white dark:bg-gray-800 rounded-2xl p-6 shadow-lg border border-gray-200 dark:border-gray-700',
+        'rounded-2xl border border-gray-200 bg-white p-6 shadow-lg dark:border-gray-700 dark:bg-gray-800',
         hoverable && 'cursor-pointer transition-all duration-300',
         className
       )}
@@ -118,17 +136,17 @@ export const Modal = ({ isOpen, onClose, title, children }: ModalProps) => {
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
       exit={{ opacity: 0 }}
-      className="fixed inset-0 bg-black/50 flex items-center justify-center z-50"
+      className="fixed inset-0 z-50 flex items-center justify-center bg-black/50"
       onClick={onClose}
     >
       <motion.div
         initial={{ scale: 0.9, opacity: 0 }}
         animate={{ scale: 1, opacity: 1 }}
         exit={{ scale: 0.9, opacity: 0 }}
-        className="bg-white dark:bg-gray-800 rounded-2xl p-8 max-w-md w-full shadow-xl"
+        className="w-full max-w-md rounded-2xl bg-white p-8 shadow-xl dark:bg-gray-800"
         onClick={(e) => e.stopPropagation()}
       >
-        {title && <h2 className="text-2xl font-bold mb-4 dark:text-white">{title}</h2>}
+        {title && <h2 className="mb-4 text-2xl font-bold dark:text-white">{title}</h2>}
         {children}
       </motion.div>
     </motion.div>
@@ -139,6 +157,6 @@ export const LoadingSpinner = () => (
   <motion.div
     animate={{ rotate: 360 }}
     transition={{ duration: 1, repeat: Infinity, ease: 'linear' }}
-    className="w-8 h-8 border-4 border-primary-600 border-t-transparent rounded-full"
+    className="h-8 w-8 rounded-full border-4 border-primary-600 border-t-transparent"
   />
 );

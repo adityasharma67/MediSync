@@ -1,84 +1,152 @@
-"use client";
+'use client';
 
-import { Calendar as CalendarIcon, CheckCircle, XCircle, Clock } from "lucide-react";
-import { useState } from "react";
+import { useEffect, useState } from 'react';
+import DashboardLayout from '@/components/layouts/DashboardLayout';
+import { Button, Card } from '@/components/ui/index';
+import { apiClient } from '@/lib/api';
+import { Conversation, IAppointment } from '@/types';
+import { useRealtime } from '@/hooks/useRealtime';
+import useAuthStore from '@/store/authStore';
+import { AlertTriangle, Clock3, MessageSquareMore, Siren } from 'lucide-react';
 
 export default function DoctorDashboard() {
-  const [appointments, setAppointments] = useState([
-    { id: 1, patient: "Alice Smith", date: "Oct 25, 2023", time: "10:00 AM", status: "pending" },
-    { id: 2, patient: "Bob Johnson", date: "Oct 25, 2023", time: "11:30 AM", status: "confirmed" },
-  ]);
+  const user = useAuthStore((state) => state.user);
+  const socketRef = useRealtime(user?._id);
+  const [appointments, setAppointments] = useState<IAppointment[]>([]);
+  const [conversations, setConversations] = useState<Conversation[]>([]);
+  const [emergencyAlerts, setEmergencyAlerts] = useState<any[]>([]);
+
+  useEffect(() => {
+    apiClient.getAppointments().then(({ data }) => setAppointments(data));
+    apiClient.getConversations().then(({ data }) => setConversations(data));
+  }, []);
+
+  useEffect(() => {
+    const socket = socketRef.current;
+    if (!socket) return;
+
+    socket.on('emergency:new-booking', (payload) => {
+      setEmergencyAlerts((current) => [payload, ...current]);
+    });
+
+    return () => {
+      socket.off('emergency:new-booking');
+    };
+  }, [socketRef]);
 
   return (
-    <div>
-      <h1 className="text-3xl font-bold text-gray-900 dark:text-white mb-8">Doctor Portal</h1>
-      
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-        {/* Main Content - Appointments */}
-        <div className="lg:col-span-2 space-y-6">
-          <h2 className="text-xl font-semibold text-gray-900 dark:text-white">Upcoming Appointments</h2>
-          
-          <div className="space-y-4">
-            {appointments.map((apt) => (
-              <div key={apt.id} className="glass p-6 rounded-2xl flex items-center justify-between">
-                <div className="flex items-center gap-4">
-                  <div className="w-12 h-12 bg-primary-100 dark:bg-primary-900/30 rounded-full flex items-center justify-center text-primary-600">
-                    <span className="font-bold">{apt.patient.charAt(0)}</span>
-                  </div>
-                  <div>
-                    <h3 className="font-semibold text-gray-900 dark:text-white">{apt.patient}</h3>
-                    <p className="text-sm text-gray-500 flex items-center gap-2">
-                      <CalendarIcon className="w-4 h-4" /> {apt.date}
-                      <Clock className="w-4 h-4 ml-2" /> {apt.time}
-                    </p>
-                  </div>
-                </div>
-                
-                <div className="flex items-center gap-2">
-                  {apt.status === 'pending' ? (
-                    <>
-                      <button className="p-2 text-emerald-600 bg-emerald-50 hover:bg-emerald-100 dark:bg-emerald-900/20 dark:hover:bg-emerald-900/40 rounded-lg transition-colors">
-                        <CheckCircle className="w-5 h-5" />
-                      </button>
-                      <button className="p-2 text-red-600 bg-red-50 hover:bg-red-100 dark:bg-red-900/20 dark:hover:bg-red-900/40 rounded-lg transition-colors">
-                        <XCircle className="w-5 h-5" />
-                      </button>
-                    </>
-                  ) : (
-                    <span className="px-3 py-1 bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400 text-sm font-medium rounded-full">
-                      Confirmed
-                    </span>
-                  )}
-                </div>
-              </div>
-            ))}
-          </div>
+    <DashboardLayout requiredRole="doctor">
+      <div className="space-y-8">
+        <div>
+          <h1 className="text-3xl font-bold text-gray-900 dark:text-white">Doctor Operations Hub</h1>
+          <p className="mt-2 text-sm text-gray-600 dark:text-gray-400">
+            Monitor emergency requests, active appointments, queue-sensitive schedules, and asynchronous patient conversations.
+          </p>
         </div>
 
-        {/* Sidebar - Availability Management */}
-        <div className="space-y-6">
-          <div className="glass p-6 rounded-2xl">
-            <h2 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">Manage Availability</h2>
-            <form className="space-y-4">
-              <div>
-                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Date</label>
-                <input type="date" className="w-full px-3 py-2 rounded-xl border border-gray-300 dark:border-gray-700 bg-white/50 dark:bg-gray-800/50 focus:ring-2 focus:ring-primary-500" />
+        <div className="grid gap-4 md:grid-cols-3">
+          <Card>
+            <div className="flex items-center gap-4">
+              <div className="rounded-2xl bg-red-100 p-3 text-red-600 dark:bg-red-900/20 dark:text-red-300">
+                <Siren className="h-5 w-5" />
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Time Slot</label>
-                <select className="w-full px-3 py-2 rounded-xl border border-gray-300 dark:border-gray-700 bg-white/50 dark:bg-gray-800/50 focus:ring-2 focus:ring-primary-500">
-                  <option>09:00 AM - 09:30 AM</option>
-                  <option>10:00 AM - 10:30 AM</option>
-                  <option>11:00 AM - 11:30 AM</option>
-                </select>
+                <p className="text-sm text-gray-500 dark:text-gray-400">Emergency Requests</p>
+                <p className="text-2xl font-bold text-gray-900 dark:text-white">{emergencyAlerts.length}</p>
               </div>
-              <button type="button" className="w-full py-2 bg-primary-600 hover:bg-primary-700 text-white rounded-xl transition-colors font-medium">
-                Add Slot
-              </button>
-            </form>
+            </div>
+          </Card>
+          <Card>
+            <div className="flex items-center gap-4">
+              <div className="rounded-2xl bg-primary-100 p-3 text-primary-600 dark:bg-primary-900/20 dark:text-primary-300">
+                <Clock3 className="h-5 w-5" />
+              </div>
+              <div>
+                <p className="text-sm text-gray-500 dark:text-gray-400">Upcoming Appointments</p>
+                <p className="text-2xl font-bold text-gray-900 dark:text-white">{appointments.length}</p>
+              </div>
+            </div>
+          </Card>
+          <Card>
+            <div className="flex items-center gap-4">
+              <div className="rounded-2xl bg-emerald-100 p-3 text-emerald-600 dark:bg-emerald-900/20 dark:text-emerald-300">
+                <MessageSquareMore className="h-5 w-5" />
+              </div>
+              <div>
+                <p className="text-sm text-gray-500 dark:text-gray-400">Async Conversations</p>
+                <p className="text-2xl font-bold text-gray-900 dark:text-white">{conversations.length}</p>
+              </div>
+            </div>
+          </Card>
+        </div>
+
+        <div className="grid gap-6 lg:grid-cols-[1.6fr,1fr]">
+          <Card>
+            <div className="mb-4 flex items-center justify-between">
+              <h2 className="text-xl font-semibold text-gray-900 dark:text-white">Emergency Booking Feed</h2>
+              <Button href="/dashboard/messages" variant="outline">Open Messages</Button>
+            </div>
+            <div className="space-y-4">
+              {emergencyAlerts.length === 0 ? (
+                <div className="rounded-2xl border border-dashed border-gray-300 p-6 text-sm text-gray-600 dark:border-gray-700 dark:text-gray-400">
+                  Emergency bookings will appear here in real time and should be prioritized in the doctor workflow.
+                </div>
+              ) : (
+                emergencyAlerts.map((alert, index) => (
+                  <div key={`${alert.appointmentId}-${index}`} className="rounded-2xl border border-red-200 bg-red-50 p-4 dark:border-red-900/30 dark:bg-red-900/10">
+                    <div className="flex items-start justify-between gap-4">
+                      <div>
+                        <p className="font-semibold text-red-700 dark:text-red-300">Urgent patient request</p>
+                        <p className="mt-1 text-sm text-gray-700 dark:text-gray-300">
+                          Symptoms: {(alert.symptoms || []).join(', ') || 'Not provided'}
+                        </p>
+                      </div>
+                      <AlertTriangle className="h-5 w-5 text-red-500" />
+                    </div>
+                  </div>
+                ))
+              )}
+            </div>
+          </Card>
+
+          <div className="space-y-6">
+            <Card>
+              <h2 className="mb-4 text-lg font-semibold text-gray-900 dark:text-white">Scheduled Queue-Sensitive Slots</h2>
+              <div className="space-y-3">
+                {appointments.slice(0, 4).map((appointment) => (
+                  <div key={appointment._id} className="rounded-xl border border-gray-200 p-4 dark:border-gray-700">
+                    <p className="font-semibold text-gray-900 dark:text-white">
+                      {appointment.patient.name || 'Patient'}
+                    </p>
+                    <p className="text-sm text-gray-600 dark:text-gray-400">
+                      {new Date(appointment.date).toLocaleDateString()} at {appointment.time}
+                    </p>
+                    <p className="text-xs text-gray-500 dark:text-gray-500">
+                      Source: {appointment.source || 'standard'}
+                    </p>
+                  </div>
+                ))}
+              </div>
+            </Card>
+
+            <Card>
+              <h2 className="mb-4 text-lg font-semibold text-gray-900 dark:text-white">Recent Conversations</h2>
+              <div className="space-y-3">
+                {conversations.slice(0, 4).map((conversation) => (
+                  <div key={conversation._id} className="rounded-xl bg-gray-50 p-4 dark:bg-gray-900/30">
+                    <p className="font-semibold text-gray-900 dark:text-white">
+                      {conversation.participants.map((participant) => participant.name).join(', ')}
+                    </p>
+                    <p className="text-sm text-gray-600 dark:text-gray-400">
+                      {conversation.messages[conversation.messages.length - 1]?.text || 'No messages yet'}
+                    </p>
+                  </div>
+                ))}
+              </div>
+            </Card>
           </div>
         </div>
       </div>
-    </div>
+    </DashboardLayout>
   );
 }

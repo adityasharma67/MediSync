@@ -1,6 +1,7 @@
 import express from 'express';
 import {
   bookAppointment,
+  createEmergencyBooking,
   getMyAppointments,
   updateAppointment,
 } from '../controllers/appointment.controller';
@@ -17,6 +18,8 @@ const router = express.Router();
 router.route('/')
   .post(protect, validate(bookAppointmentSchema), asyncHandler(bookAppointment))
   .get(protect, asyncHandler(getMyAppointments));
+
+router.post('/emergency', protect, asyncHandler(createEmergencyBooking));
 
 router.route('/:id')
   .put(protect, validate(updateAppointmentSchema), asyncHandler(updateAppointment));

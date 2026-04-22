@@ -1,26 +1,32 @@
-import axios, { AxiosInstance, AxiosError } from 'axios';
+import axios, { AxiosError, AxiosInstance } from 'axios';
 import {
+  AnalyticsDashboard,
   AuthResponse,
-  RefreshResponse,
-  IAppointment,
-  IPrescription,
+  Conversation,
   CreateAppointmentPayload,
   CreatePrescriptionPayload,
-  IUser,
-  INotification,
+  DoctorRecommendation,
   ForgotPasswordPayload,
+  IAppointment,
+  INotification,
+  IPrescription,
+  IUser,
+  MedicalReport,
+  QueueEntryStatus,
+  RefreshResponse,
   ResetPasswordPayload,
+  SecuritySession,
+  TimelineItem,
 } from '@/types';
 import useAuthStore from '@/store/authStore';
-import toast from 'react-hot-toast';
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:5000';
 
 class APIClient {
-  private client: AxiosInstance;
+  public client: AxiosInstance;
   private accessToken: string | null = null;
   private refreshToken: string | null = null;
-  private isRefreshing: boolean = false;
+  private isRefreshing = false;
   private failedQueue: any[] = [];
 
   constructor() {
@@ -31,13 +37,15 @@ class APIClient {
       },
     });
 
-    // Load tokens from localStorage
     if (typeof window !== 'undefined') {
       this.accessToken = localStorage.getItem('accessToken');
       this.refreshToken = localStorage.getItem('refreshToken');
+
+      if (!localStorage.getItem('deviceId')) {
+        localStorage.setItem('deviceId', crypto.randomUUID());
+      }
     }
 
-    // Request interceptor - add token to all requests
     this.client.interceptors.request.use((config) => {
       if (this.accessToken) {
         config.headers.Authorization = `Bearer ${this.accessToken}`;
@@ -45,13 +53,11 @@ class APIClient {
       return config;
     });
 
-    // Response interceptor - handle token expiry and refresh
     this.client.interceptors.response.use(
       (response) => response,
       async (error: AxiosError) => {
         const originalRequest: any = error.config;
 
-        // Check if error is due to expired token
         if (error.response?.status === 401 && !originalRequest._retry && this.refreshToken) {
           originalRequest._retry = true;
 
@@ -96,6 +102,14 @@ class APIClient {
     );
   }
 
+  private getDeviceId() {
+    if (typeof window === 'undefined') {
+      return 'server-device';
+    }
+
+    return localStorage.getItem('deviceId') || 'browser-device';
+  }
+
   private processQueue(error: any, token: string | null) {
     this.failedQueue.forEach(({ resolve, reject }) => {
       if (error) {
@@ -121,17 +135,33 @@ class APIClient {
     localStorage.removeItem('refreshToken');
   }
 
-  // Auth APIs
   signup(name: string, email: string, password: string, role: string = 'patient') {
-    return this.client.post<AuthResponse>('/api/auth/signup', { name, email, password, role });
+    return this.client.post<AuthResponse>('/api/auth/signup', {
+      name,
+      email,
+      password,
+      role,
+      deviceId: this.getDeviceId(),
+    });
   }
 
-  login(email: string, password: string) {
-    return this.client.post<AuthResponse>('/api/auth/login', { email, password });
+  login(email: string, password: string, twoFactorCode?: string) {
+    return this.client.post<AuthResponse>('/api/auth/login', {
+      email,
+      password,
+      twoFactorCode,
+      deviceId: this.getDeviceId(),
+    });
   }
 
   googleAuth(email: string, name: string, googleId: string, avatar?: string) {
-    return this.client.post<AuthResponse>('/api/auth/google', { email, name, googleId, avatar });
+    return this.client.post<AuthResponse>('/api/auth/google', {
+      email,
+      name,
+      googleId,
+      avatar,
+      deviceId: this.getDeviceId(),
+    });
   }
 
   forgotPassword(payload: ForgotPasswordPayload) {
@@ -148,7 +178,6 @@ class APIClient {
     });
   }
 
-  // User APIs
   getMe() {
     return this.client.get<IUser>('/api/users/profile');
   }
@@ -161,13 +190,29 @@ class APIClient {
     return this.client.get<IUser[]>('/api/users/doctors');
   }
 
+  recommendDoctors(symptoms: string[]) {
+    return this.client.get<DoctorRecommendation[]>('/api/users/doctors/recommendations', {
+      params: { symptoms: symptoms.join(',') },
+    });
+  }
+
+  getNearbyDoctors(lat: number, lng: number) {
+    return this.client.get<IUser[]>('/api/users/doctors/nearby', { params: { lat, lng } });
+  }
+
   getDoctorById(id: string) {
     return this.client.get<IUser>(`/api/users/${id}`);
   }
 
-  // Appointment APIs
   bookAppointment(payload: CreateAppointmentPayload) {
-    return this.client.post<IAppointment>('/api/appointments', payload);
+    return this.client.post<IAppointment | { joinedWaitlist: boolean; queue: QueueEntryStatus; message: string }>(
+      '/api/appointments',
+      payload
+    );
+  }
+
+  bookEmergencyAppointment(payload: { symptoms: string[]; date?: string; time?: string }) {
+    return this.client.post<{ message: string; appointment: IAppointment }>('/api/appointments/emergency', payload);
   }
 
   getAppointments() {
@@ -186,7 +231,14 @@ class APIClient {
     return this.client.put<IAppointment>(`/api/appointments/${id}`, { status: 'cancelled' });
   }
 
-  // Prescription APIs
+  joinWaitlist(payload: { doctorId: string; date: string; time: string; symptoms?: string[]; priority?: number }) {
+    return this.client.post<QueueEntryStatus>('/api/queue', payload);
+  }
+
+  getQueueStatus(id: string) {
+    return this.client.get<QueueEntryStatus>(`/api/queue/${id}`);
+  }
+
   createPrescription(payload: CreatePrescriptionPayload) {
     return this.client.post<IPrescription>('/api/prescriptions', payload);
   }
@@ -203,7 +255,53 @@ class APIClient {
     return this.client.get(`/api/prescriptions/${id}/pdf`, { responseType: 'blob' });
   }
 
-  // Notification APIs
+  getTimeline() {
+    return this.client.get<TimelineItem[]>('/api/timeline');
+  }
+
+  analyzeReport(payload: {
+    title: string;
+    fileName: string;
+    mimeType: string;
+    fileData?: string;
+    appointmentId?: string;
+    ocrText?: string;
+  }) {
+    return this.client.post<MedicalReport>('/api/reports', payload);
+  }
+
+  getReports() {
+    return this.client.get<MedicalReport[]>('/api/reports');
+  }
+
+  getConversations() {
+    return this.client.get<Conversation[]>('/api/messages');
+  }
+
+  startConversation(participantIds: string[], appointmentId?: string) {
+    return this.client.post<Conversation>('/api/messages', { participantIds, appointmentId });
+  }
+
+  sendMessage(conversationId: string, payload: { text?: string; attachments?: { name: string; url: string; mimeType: string }[] }) {
+    return this.client.post<Conversation>(`/api/messages/${conversationId}/messages`, payload);
+  }
+
+  getAnalytics() {
+    return this.client.get<AnalyticsDashboard>('/api/analytics');
+  }
+
+  setupTwoFactor() {
+    return this.client.post<{ secret: string; otpPreview: string }>('/api/security/2fa/setup');
+  }
+
+  enableTwoFactor(code: string) {
+    return this.client.post<{ enabled: boolean }>('/api/security/2fa/enable', { code });
+  }
+
+  getSessions() {
+    return this.client.get<SecuritySession[]>('/api/security/sessions');
+  }
+
   getNotifications() {
     return this.client.get<INotification[]>('/api/notifications');
   }

@@ -1,6 +1,8 @@
 import express from 'express';
 import {
+  getDoctorRecommendations,
   getUserProfile,
+  getNearbyDoctors,
   updateUserProfile,
   getDoctors,
   getUsers,
@@ -15,6 +17,8 @@ router.route('/profile')
   .put(protect, asyncHandler(updateUserProfile));
 
 router.get('/doctors', asyncHandler(getDoctors));
+router.get('/doctors/recommendations', asyncHandler(getDoctorRecommendations));
+router.get('/doctors/nearby', asyncHandler(getNearbyDoctors));
 
 // Admin only routes
 router.get('/', protect, restrictTo('admin'), asyncHandler(getUsers));

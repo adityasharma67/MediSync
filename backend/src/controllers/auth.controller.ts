@@ -3,12 +3,15 @@ import User from '../models/user.model';
 import AuthService from '../services/auth.service';
 import logger from '../utils/logger';
 import crypto from 'crypto';
+import securityService from '../services/security.service';
+import Notification from '../models/notification.model';
+import { AppError } from '../middlewares/error.middleware';
 
 // @desc    Auth user & get tokens
 // @route   POST /api/auth/login
 // @access  Public
 export const authUser = async (req: Request, res: Response) => {
-  const { email, password } = req.body;
+  const { email, password, twoFactorCode, deviceId } = req.body;
 
   try {
     if (!email || !password) {
@@ -16,11 +19,18 @@ export const authUser = async (req: Request, res: Response) => {
       throw new Error('Email and password are required');
     }
 
-    const user = await User.findOne({ email }).select('+password');
+    const user = await User.findOne({ email }).select('+password +security.twoFactorSecret');
 
     if (!user || !(await user.matchPassword(password))) {
       res.status(401);
       throw new Error('Invalid email or password');
+    }
+
+    if (user.security?.twoFactorEnabled) {
+      const expectedCode = user.security.twoFactorSecret?.slice(-6).toUpperCase();
+      if (!twoFactorCode || twoFactorCode.toUpperCase() !== expectedCode) {
+        throw new AppError(401, 'Two-factor authentication code is required');
+      }
     }
 
     // Generate tokens
@@ -36,6 +46,21 @@ export const authUser = async (req: Request, res: Response) => {
     user.refreshToken = hashedRefreshToken;
     user.refreshTokenExpires = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000); // 7 days
     await user.save();
+
+    await securityService.recordLogin(user._id.toString(), {
+      deviceId,
+      userAgent: req.headers['user-agent'],
+      ip: req.ip,
+    });
+
+    if (user.security?.loginAlertsEnabled) {
+      await Notification.create({
+        user: user._id,
+        title: 'New login detected',
+        message: `A login was recorded from ${req.headers['user-agent'] || 'an unknown device'}.`,
+        type: 'system',
+      });
+    }
 
     res.json({
       _id: user._id,
@@ -57,7 +82,7 @@ export const authUser = async (req: Request, res: Response) => {
 // @route   POST /api/auth/signup
 // @access  Public
 export const registerUser = async (req: Request, res: Response) => {
-  const { name, email, password, role } = req.body;
+  const { name, email, password, role, deviceId } = req.body;
 
   try {
     if (!name || !email || !password) {
@@ -93,6 +118,12 @@ export const registerUser = async (req: Request, res: Response) => {
     user.refreshToken = hashedRefreshToken;
     user.refreshTokenExpires = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000);
     await user.save();
+
+    await securityService.recordLogin(user._id.toString(), {
+      deviceId,
+      userAgent: req.headers['user-agent'],
+      ip: req.ip,
+    });
 
     res.status(201).json({
       _id: user._id,
@@ -263,7 +294,7 @@ export const resetPassword = async (req: Request, res: Response) => {
 // @route   POST /api/auth/google
 // @access  Public
 export const googleAuth = async (req: Request, res: Response) => {
-  const { email, name, googleId, avatar } = req.body;
+  const { email, name, googleId, avatar, deviceId } = req.body;
 
   try {
     if (!email || !name) {
@@ -297,6 +328,12 @@ export const googleAuth = async (req: Request, res: Response) => {
     user.refreshToken = hashedRefreshToken;
     user.refreshTokenExpires = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000);
     await user.save();
+
+    await securityService.recordLogin(user._id.toString(), {
+      deviceId,
+      userAgent: req.headers['user-agent'],
+      ip: req.ip,
+    });
 
     res.json({
       _id: user._id,

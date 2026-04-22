@@ -11,6 +11,42 @@ export interface IUser extends Document {
   avatar?: string;
   specialization?: string; // For doctors
   availableSlots?: { date: Date; time: string }[]; // For doctors
+  symptomsProfile?: string[];
+  doctorProfile?: {
+    bio?: string;
+    hospital?: string;
+    consultationFee?: number;
+    experienceYears?: number;
+    languages?: string[];
+    rating?: number;
+    reviewCount?: number;
+    reviews?: {
+      patientName: string;
+      rating: number;
+      comment?: string;
+      createdAt: Date;
+    }[];
+    location?: {
+      lat: number;
+      lng: number;
+      address?: string;
+    };
+    emergencyAvailable?: boolean;
+  };
+  security?: {
+    twoFactorEnabled?: boolean;
+    twoFactorSecret?: string;
+    trustedDevices?: {
+      deviceId: string;
+      userAgent?: string;
+      lastSeenAt: Date;
+      createdAt: Date;
+    }[];
+    lastLoginAt?: Date;
+    lastLoginIp?: string;
+    lastLoginDevice?: string;
+    loginAlertsEnabled?: boolean;
+  };
   resetPasswordToken?: string;
   resetPasswordExpires?: Date;
   refreshToken?: string;
@@ -31,6 +67,46 @@ const userSchema: Schema = new Schema(
     avatar: { type: String },
     specialization: { type: String },
     availableSlots: [{ date: Date, time: String }],
+    symptomsProfile: [{ type: String }],
+    doctorProfile: {
+      bio: { type: String },
+      hospital: { type: String },
+      consultationFee: { type: Number },
+      experienceYears: { type: Number },
+      languages: [{ type: String }],
+      rating: { type: Number, default: 0 },
+      reviewCount: { type: Number, default: 0 },
+      reviews: [
+        {
+          patientName: { type: String, required: true },
+          rating: { type: Number, required: true, min: 1, max: 5 },
+          comment: { type: String },
+          createdAt: { type: Date, default: Date.now },
+        },
+      ],
+      location: {
+        lat: { type: Number },
+        lng: { type: Number },
+        address: { type: String },
+      },
+      emergencyAvailable: { type: Boolean, default: false },
+    },
+    security: {
+      twoFactorEnabled: { type: Boolean, default: false },
+      twoFactorSecret: { type: String, select: false },
+      trustedDevices: [
+        {
+          deviceId: { type: String, required: true },
+          userAgent: { type: String },
+          lastSeenAt: { type: Date, default: Date.now },
+          createdAt: { type: Date, default: Date.now },
+        },
+      ],
+      lastLoginAt: { type: Date },
+      lastLoginIp: { type: String },
+      lastLoginDevice: { type: String },
+      loginAlertsEnabled: { type: Boolean, default: true },
+    },
     resetPasswordToken: { type: String, select: false },
     resetPasswordExpires: { type: Date, select: false },
     refreshToken: { type: String, select: false },
@@ -43,6 +119,8 @@ const userSchema: Schema = new Schema(
 // Index for reset token queries
 userSchema.index({ resetPasswordToken: 1, resetPasswordExpires: 1 });
 userSchema.index({ email: 1 });
+userSchema.index({ role: 1, specialization: 1 });
+userSchema.index({ 'doctorProfile.location.lat': 1, 'doctorProfile.location.lng': 1 });
 
 // Password hashing middleware
 userSchema.pre<IUser>('save', async function (next) {

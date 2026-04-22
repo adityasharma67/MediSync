@@ -8,19 +8,20 @@ import toast from 'react-hot-toast';
 import { apiClient } from '@/lib/api';
 import useAuthStore from '@/store/authStore';
 import { Button, Input } from '@/components/ui/index';
+import { UserRole } from '@/types';
 import { Mail, Lock, User } from 'lucide-react';
 
 export default function SignupPage() {
   const router = useRouter();
   const setUser = useAuthStore((state) => state.setUser);
-  const setToken = useAuthStore((state) => state.setToken);
+  const setTokens = useAuthStore((state) => state.setTokens);
   const [isLoading, setIsLoading] = useState(false);
   const [formData, setFormData] = useState({
     name: '',
     email: '',
     password: '',
     confirmPassword: '',
-    role: 'patient',
+    role: 'patient' as UserRole,
   });
   const [errors, setErrors] = useState<any>({});
 
@@ -49,7 +50,7 @@ export default function SignupPage() {
         formData.password,
         formData.role
       );
-      setToken(data.token);
+      setTokens(data.accessToken, data.refreshToken);
       setUser({
         _id: data._id,
         name: data.name,
@@ -106,7 +107,7 @@ export default function SignupPage() {
               <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Role</label>
               <select
                 value={formData.role}
-                onChange={(e) => setFormData({ ...formData, role: e.target.value })}
+                onChange={(e) => setFormData({ ...formData, role: e.target.value as UserRole })}
                 className="w-full px-4 py-2 border-2 border-gray-300 dark:border-gray-600 rounded-lg
                   focus:outline-none focus:border-primary-500 dark:bg-gray-800 dark:text-white"
               >

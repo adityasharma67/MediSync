@@ -5,13 +5,15 @@ export const bookAppointmentSchema = z.object({
     doctorId: z.string().min(1, 'Doctor ID is required'),
     date: z.string().min(1, 'Date is required'),
     time: z.string().regex(/^([01]\d|2[0-3]):([0-5]\d)$/, 'Time must be in HH:MM format'),
+    symptoms: z.array(z.string()).optional(),
+    joinWaitlist: z.boolean().optional(),
   }),
 });
 
 export const updateAppointmentSchema = z.object({
   body: z
     .object({
-      status: z.enum(['scheduled', 'completed', 'cancelled']).optional(),
+      status: z.enum(['scheduled', 'completed', 'cancelled', 'emergency']).optional(),
       date: z.string().optional(),
       time: z.string().regex(/^([01]\d|2[0-3]):([0-5]\d)$/, 'Time must be in HH:MM format').optional(),
       meetLink: z.string().url('meetLink must be a valid URL').optional(),

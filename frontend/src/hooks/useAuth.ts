@@ -1,43 +1,35 @@
-import { useEffect } from 'react';
+import { useEffect, useState, useCallback } from 'react';
 import { apiClient } from '@/lib/api';
 import useAuthStore from '@/store/authStore';
 
 export const useAuth = () => {
-  const { user, token, isAuthenticated, setUser, setToken, logout } = useAuthStore();
+  const { user, accessToken, isAuthenticated, setUser, logout } = useAuthStore();
 
   useEffect(() => {
-    // Load auth from localStorage on mount
-    const savedToken = localStorage.getItem('authToken');
-    if (savedToken && !token) {
-      setToken(savedToken);
+    const loadUser = async () => {
+      try {
+        const response = await apiClient.getMe();
+        setUser(response.data);
+      } catch {
+        logout();
+      }
+    };
+
+    if (accessToken && !user) {
       loadUser();
     }
-  }, []);
+  }, [accessToken, logout, setUser, user]);
 
-  const loadUser = async () => {
-    try {
-      const response = await apiClient.getMe();
-      setUser(response.data);
-    } catch (error) {
-      logout();
-    }
-  };
-
-  return { user, token, isAuthenticated: isAuthenticated(), logout };
+  return { user, token: accessToken, isAuthenticated: isAuthenticated(), logout };
 };
-
-import { useCallback, useRef } from 'react';
-import toast from 'react-hot-toast';
 
 export const useAsync = <T, E = string>(
   asyncFunction: () => Promise<T>,
   immediate = true
 ) => {
-  const [status, setStatus] = useCallback((
-    'idle' as const
-  ));
-  const [value, setValue] = useCallback((null as T | null));
-  const [error, setError] = useCallback((null as E | null));
+  const [status, setStatus] = useState<'idle' | 'pending' | 'success' | 'error'>('idle');
+  const [value, setValue] = useState<T | null>(null);
+  const [error, setError] = useState<E | null>(null);
 
   const execute = useCallback(async () => {
     setStatus('pending');
@@ -48,10 +40,10 @@ export const useAsync = <T, E = string>(
       setValue(response);
       setStatus('success');
       return response;
-    } catch (error) {
-      setError(error as E);
+    } catch (executionError) {
+      setError(executionError as E);
       setStatus('error');
-      throw error;
+      throw executionError;
     }
   }, [asyncFunction]);
 

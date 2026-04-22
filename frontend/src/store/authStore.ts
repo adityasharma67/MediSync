@@ -17,7 +17,7 @@ interface AuthState {
   
   // Auth methods
   login: (email: string, password: string) => Promise<void>;
-  signup: (name: string, email: string, password: string, role: string) => Promise<void>;
+  signup: (name: string, email: string, password: string, role: UserRole) => Promise<void>;
   logout: () => void;
   
   // Token methods
@@ -70,7 +70,7 @@ const useAuthStore = create<AuthState>((set, get) => ({
     }
   },
 
-  signup: async (name: string, email: string, password: string, role: string) => {
+  signup: async (name: string, email: string, password: string, role: UserRole) => {
     try {
       set({ isLoading: true, error: null });
       const response = await apiClient.signup(name, email, password, role);

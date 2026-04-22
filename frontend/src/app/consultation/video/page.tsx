@@ -46,7 +46,7 @@ export default function ConsultationPage() {
 
       const newPeer = new SimplePeer({
         initiator: true,
-        trickleIce: false,
+        trickle: false,
         stream: stream,
         config: {
           iceServers: [

@@ -3,6 +3,8 @@ import User from '../models/user.model';
 import { AuthRequest } from '../middlewares/auth.middleware';
 import redis from '../config/redis';
 import logger from '../utils/logger';
+import recommendationService from '../services/recommendation.service';
+import geoService from '../services/geo.service';
 
 // @desc    Get user profile
 // @route   GET /api/users/profile
@@ -37,6 +39,17 @@ export const updateUserProfile = async (req: AuthRequest, res: Response) => {
       user.password = req.body.password;
     }
     user.avatar = req.body.avatar || user.avatar;
+    user.specialization = req.body.specialization || user.specialization;
+    user.availableSlots = req.body.availableSlots || user.availableSlots;
+    user.symptomsProfile = req.body.symptomsProfile || user.symptomsProfile;
+    user.doctorProfile = {
+      ...user.doctorProfile,
+      ...(req.body.doctorProfile || {}),
+      location: {
+        ...user.doctorProfile?.location,
+        ...(req.body.doctorProfile?.location || {}),
+      },
+    };
 
     const updatedUser = await user.save();
 
@@ -46,6 +59,10 @@ export const updateUserProfile = async (req: AuthRequest, res: Response) => {
       email: updatedUser.email,
       role: updatedUser.role,
       avatar: updatedUser.avatar,
+      specialization: updatedUser.specialization,
+      availableSlots: updatedUser.availableSlots,
+      symptomsProfile: updatedUser.symptomsProfile,
+      doctorProfile: updatedUser.doctorProfile,
     });
   } else {
     res.status(404);
@@ -71,6 +88,23 @@ export const getDoctors = async (req: Request, res: Response) => {
 
   await redis.set(cacheKey, JSON.stringify(doctors), 'EX', 300);
   logger.info('cache_set', { cacheKey, ttlSeconds: 300, size: doctors.length });
+  res.json(doctors);
+};
+
+export const getDoctorRecommendations = async (req: Request, res: Response) => {
+  const symptoms = String(req.query.symptoms || '')
+    .split(',')
+    .map((item) => item.trim())
+    .filter(Boolean);
+
+  const recommendations = await recommendationService.recommendDoctors({ symptoms });
+  res.json(recommendations);
+};
+
+export const getNearbyDoctors = async (req: Request, res: Response) => {
+  const lat = Number(req.query.lat);
+  const lng = Number(req.query.lng);
+  const doctors = await geoService.findNearbyDoctors(lat, lng);
   res.json(doctors);
 };
 

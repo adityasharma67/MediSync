@@ -5,8 +5,12 @@ export interface IAppointment extends Document {
   doctor: mongoose.Types.ObjectId;
   date: Date;
   time: string;
-  status: 'scheduled' | 'completed' | 'cancelled';
+  status: 'scheduled' | 'completed' | 'cancelled' | 'emergency';
   meetLink?: string;
+  symptoms?: string[];
+  urgencyLevel?: 'normal' | 'priority' | 'emergency';
+  source?: 'standard' | 'waitlist-auto' | 'emergency';
+  queueAssignedAt?: Date;
 }
 
 const appointmentSchema: Schema = new Schema(
@@ -17,10 +21,22 @@ const appointmentSchema: Schema = new Schema(
     time: { type: String, required: true },
     status: {
       type: String,
-      enum: ['scheduled', 'completed', 'cancelled'],
+      enum: ['scheduled', 'completed', 'cancelled', 'emergency'],
       default: 'scheduled',
     },
     meetLink: { type: String },
+    symptoms: [{ type: String }],
+    urgencyLevel: {
+      type: String,
+      enum: ['normal', 'priority', 'emergency'],
+      default: 'normal',
+    },
+    source: {
+      type: String,
+      enum: ['standard', 'waitlist-auto', 'emergency'],
+      default: 'standard',
+    },
+    queueAssignedAt: { type: Date },
   },
   { timestamps: true }
 );
@@ -29,6 +45,7 @@ const appointmentSchema: Schema = new Schema(
 appointmentSchema.index({ doctor: 1, date: 1, time: 1 }, { unique: true });
 appointmentSchema.index({ patient: 1, date: -1 });
 appointmentSchema.index({ doctor: 1, status: 1, date: -1 });
+appointmentSchema.index({ patient: 1, status: 1, createdAt: -1 });
 
 const Appointment = mongoose.model<IAppointment>('Appointment', appointmentSchema);
 export default Appointment;

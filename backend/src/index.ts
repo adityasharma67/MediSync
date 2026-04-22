@@ -14,9 +14,17 @@ import userRoutes from './routes/user.routes';
 import appointmentRoutes from './routes/appointment.routes';
 import prescriptionRoutes from './routes/prescription.routes';
 import notificationRoutes from './routes/notification.routes';
+import queueRoutes from './routes/queue.routes';
+import discoveryRoutes from './routes/discovery.routes';
+import reportRoutes from './routes/report.routes';
+import timelineRoutes from './routes/timeline.routes';
+import messagingRoutes from './routes/messaging.routes';
+import analyticsRoutes from './routes/analytics.routes';
+import securityRoutes from './routes/security.routes';
 import { apiLimiter } from './middlewares/rateLimiter';
 import './config/redis'; // Initialize Redis connection
 import './workers/notification.worker';
+import { initializeSocketService } from './services/socket.service';
 
 dotenv.config();
 
@@ -31,6 +39,7 @@ const io = new Server(httpServer, {
     methods: ['GET', 'POST']
   }
 });
+initializeSocketService(io);
 
 // Middleware
 app.use(express.json());
@@ -52,6 +61,13 @@ app.use('/api/users', userRoutes);
 app.use('/api/appointments', appointmentRoutes);
 app.use('/api/prescriptions', prescriptionRoutes);
 app.use('/api/notifications', notificationRoutes);
+app.use('/api/queue', queueRoutes);
+app.use('/api/discovery', discoveryRoutes);
+app.use('/api/reports', reportRoutes);
+app.use('/api/timeline', timelineRoutes);
+app.use('/api/messages', messagingRoutes);
+app.use('/api/analytics', analyticsRoutes);
+app.use('/api/security', securityRoutes);
 
 // Base route
 app.get('/', (req: Request, res: Response) => {
@@ -78,6 +94,15 @@ app.get('/metrics', (req: Request, res: Response) => {
 // Socket.io connection
 io.on('connection', (socket) => {
   logger.info(`User connected: ${socket.id}`);
+
+  socket.on('auth:bind-user', (userId) => {
+    socket.join(`user:${userId}`);
+  });
+
+  socket.on('queue:watch-slot', ({ doctorId, date, time }) => {
+    const slotKey = `${doctorId}:${new Date(date).toISOString().split('T')[0]}:${time}`;
+    socket.join(`slot:${slotKey}`);
+  });
 
   socket.on('disconnect', () => {
     logger.info(`User disconnected: ${socket.id}`);
@@ -108,12 +133,16 @@ io.on('connection', (socket) => {
 
   // Chat during consultation
   socket.on('chat:message', (data) => {
-    const room = data.appointmentId;
+    const room = data.appointmentId || data.conversationId;
     io.to(room).emit('chat:message', {
       sender: data.sender,
       message: data.message,
       timestamp: new Date().toISOString(),
     });
+  });
+
+  socket.on('chat:join', (conversationId) => {
+    socket.join(conversationId);
   });
 
   // Real-time availability updates

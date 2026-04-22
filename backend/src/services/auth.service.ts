@@ -3,6 +3,7 @@ import crypto from 'crypto';
 import User from '../models/user.model';
 import nodemailer from 'nodemailer';
 import logger from '../utils/logger';
+import type { SignOptions } from 'jsonwebtoken';
 
 interface TokenPayload {
   id: string;
@@ -21,7 +22,7 @@ export class AuthService {
     return jwt.sign(
       { id, email, role, type: 'access' },
       this.JWT_SECRET,
-      { expiresIn: this.JWT_EXPIRES_IN }
+      { expiresIn: this.JWT_EXPIRES_IN } as SignOptions
     );
   }
 
@@ -30,7 +31,7 @@ export class AuthService {
     return jwt.sign(
       { id, type: 'refresh' },
       this.REFRESH_SECRET,
-      { expiresIn: this.REFRESH_EXPIRES_IN }
+      { expiresIn: this.REFRESH_EXPIRES_IN } as SignOptions
     );
   }
 

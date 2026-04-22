@@ -7,6 +7,7 @@ import { ArrowRight, Mail, Lock, User, UserSquare } from "lucide-react";
 import { useState } from "react";
 import useAuthStore from "@/store/authStore";
 import toast from "react-hot-toast";
+import { UserRole } from "@/types";
 
 export default function SignupPage() {
   const router = useRouter();
@@ -14,7 +15,7 @@ export default function SignupPage() {
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-  const [role, setRole] = useState("patient");
+  const [role, setRole] = useState<UserRole>("patient");
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();

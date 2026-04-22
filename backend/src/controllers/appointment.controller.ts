@@ -4,6 +4,9 @@ import { AuthRequest } from '../middlewares/auth.middleware';
 import { notificationQueue } from '../queues/notification.queue';
 import User from '../models/user.model';
 import { AppError } from '../middlewares/error.middleware';
+import queueService from '../services/queue.service';
+import analyticsService from '../services/analytics.service';
+import { emitToUser } from '../services/socket.service';
 
 const combineDateTime = (dateValue: string | Date, time: string): Date => {
   const date = new Date(dateValue);
@@ -26,40 +29,50 @@ const combineDateTime = (dateValue: string | Date, time: string): Date => {
 // @route   POST /api/appointments
 // @access  Private
 export const bookAppointment = async (req: AuthRequest, res: Response) => {
-  const { doctorId, date, time } = req.body;
+  const { doctorId, date, time, symptoms, joinWaitlist: allowWaitlist } = req.body;
 
   if (req.user.role !== 'patient') {
     throw new AppError(403, 'Only patients can book appointments');
   }
 
   try {
-    // Atomic upsert prevents race conditions when multiple users target same slot.
-    const appointment = await Appointment.findOneAndUpdate(
-      { doctor: doctorId, date: new Date(date), time },
-      {
-        $setOnInsert: {
-          patient: req.user._id,
-          doctor: doctorId,
-          date: new Date(date),
-          time,
-          status: 'scheduled',
-        },
-      },
-      {
-        upsert: true,
-        new: true,
-        rawResult: true,
-      }
-    );
+    const existingAppointment = await Appointment.findOne({
+      doctor: doctorId,
+      date: new Date(date),
+      time,
+      status: { $ne: 'cancelled' },
+    });
 
-    if (!appointment.lastErrorObject?.upserted) {
+    if (existingAppointment) {
+      if (allowWaitlist) {
+        const waitlistEntry = await queueService.joinQueue({
+          patientId: req.user._id.toString(),
+          doctorId,
+          date,
+          time,
+          symptoms,
+          priority: (symptoms || []).length,
+        });
+        const queueState = await queueService.getQueuePosition(waitlistEntry._id.toString());
+        res.status(202).json({
+          joinedWaitlist: true,
+          message: 'Slot is full. You have been added to the waiting queue.',
+          queue: queueState,
+        });
+        return;
+      }
+
       throw new AppError(409, 'This slot is already booked');
     }
 
-    const createdAppointment = appointment.value;
-    if (!createdAppointment) {
-      throw new AppError(500, 'Failed to create appointment');
-    }
+    const createdAppointment = await Appointment.create({
+      patient: req.user._id,
+      doctor: doctorId,
+      date: new Date(date),
+      time,
+      status: 'scheduled',
+      symptoms: symptoms || [],
+    });
 
     const [patient, doctor] = await Promise.all([
       User.findById(req.user._id).select('name email'),
@@ -85,6 +98,14 @@ export const bookAppointment = async (req: AuthRequest, res: Response) => {
         }
       );
     }
+
+    await analyticsService.track('appointment.booked', {
+      userId: req.user._id.toString(),
+      doctorId,
+      metadata: { date, time },
+    });
+
+    emitToUser(req.user._id.toString(), 'appointment:confirmed', createdAppointment);
 
     res.status(201).json(createdAppointment);
   } catch (error: any) {
@@ -148,6 +169,20 @@ export const updateAppointment = async (req: AuthRequest, res: Response) => {
 
   try {
     const updatedAppointment = await appointment.save();
+
+    if (status === 'cancelled') {
+      await queueService.assignFreedSlot(
+        appointment.doctor.toString(),
+        appointment.date,
+        appointment.time
+      );
+      await analyticsService.track('appointment.cancelled', {
+        userId: req.user._id.toString(),
+        doctorId: appointment.doctor.toString(),
+        metadata: { appointmentId: appointment._id.toString() },
+      });
+    }
+
     res.json(updatedAppointment);
   } catch (error: any) {
     if (error.code === 11000) {
@@ -156,4 +191,48 @@ export const updateAppointment = async (req: AuthRequest, res: Response) => {
     }
     throw error;
   }
+};
+
+export const createEmergencyBooking = async (req: AuthRequest, res: Response) => {
+  if (req.user.role !== 'patient') {
+    throw new AppError(403, 'Only patients can create emergency bookings');
+  }
+
+  const { symptoms = [], date, time } = req.body;
+  const emergencyDoctor = await User.findOne({
+    role: 'doctor',
+    'doctorProfile.emergencyAvailable': true,
+  }).sort({ 'doctorProfile.rating': -1, 'doctorProfile.reviewCount': -1 });
+
+  if (!emergencyDoctor) {
+    throw new AppError(404, 'No emergency doctors are available right now');
+  }
+
+  const appointment = await Appointment.create({
+    patient: req.user._id,
+    doctor: emergencyDoctor._id,
+    date: new Date(date || Date.now()),
+    time: time || new Date().toTimeString().slice(0, 5),
+    status: 'emergency',
+    symptoms,
+    urgencyLevel: 'emergency',
+    source: 'emergency',
+  });
+
+  await analyticsService.track('appointment.emergency', {
+    userId: req.user._id.toString(),
+    doctorId: emergencyDoctor._id.toString(),
+    metadata: { symptoms },
+  });
+
+  emitToUser(emergencyDoctor._id.toString(), 'emergency:new-booking', {
+    appointmentId: appointment._id,
+    patientId: req.user._id,
+    symptoms,
+  });
+
+  res.status(201).json({
+    message: 'Emergency booking created and doctors notified',
+    appointment,
+  });
 };
