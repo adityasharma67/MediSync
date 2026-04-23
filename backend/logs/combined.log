@@ -1,4 +1,0 @@
-{"level":"error","message":"Login error: TypeError: user_model_1.default.findOne(...).select is not a function","service":"medisync-backend","timestamp":"2026-04-23T02:12:02.129Z"}
-{"level":"error","message":"Login error: TypeError: Cannot read properties of undefined (reading 'user-agent')","service":"medisync-backend","timestamp":"2026-04-23T02:12:02.185Z"}
-{"level":"error","message":"Login error: TypeError: user_model_1.default.findOne(...).select is not a function","service":"medisync-backend","timestamp":"2026-04-23T02:16:38.358Z"}
-{"level":"error","message":"Login error: TypeError: Cannot read properties of undefined (reading 'user-agent')","service":"medisync-backend","timestamp":"2026-04-23T02:16:38.403Z"}
