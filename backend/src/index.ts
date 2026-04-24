@@ -32,6 +32,9 @@ dotenv.config();
 const app = express();
 const httpServer = createServer(app);
 
+// Trust reverse proxy headers on hosted platforms (e.g., Render).
+app.set('trust proxy', 1);
+
 // Initialize Socket.io
 const io = new Server(httpServer, {
   cors: {
@@ -80,6 +83,11 @@ app.get('/', (req: Request, res: Response) => {
 
 // Health check
 app.get('/health', (req: Request, res: Response) => {
+  res.json({ status: 'ok', timestamp: new Date().toISOString() });
+});
+
+// API-prefixed health check for environments that probe under /api.
+app.get('/api/health', (req: Request, res: Response) => {
   res.json({ status: 'ok', timestamp: new Date().toISOString() });
 });
 

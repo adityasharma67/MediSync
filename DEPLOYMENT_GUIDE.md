@@ -6,7 +6,7 @@
 3. [Environment Variables](#environment-variables)
 4. [Docker Deployment](#docker-deployment)
 5. [Vercel Deployment (Frontend)](#vercel-deployment-frontend)
-6. [Render/Railway Deployment (Backend)](#render--railway-deployment-backend)
+6. [Render Deployment (Full Stack)](#render-deployment-full-stack)
 7. [Troubleshooting](#troubleshooting)
 
 ---
@@ -16,7 +16,7 @@
 ### Prerequisites
 - Node.js 18+ 
 - MongoDB running locally or a MongoDB Atlas account
-- Redis (optional, for caching)
+- Redis (required for queues + caching)
 - Git
 
 ### Backend Setup
@@ -91,9 +91,11 @@ FRONTEND_URL=http://localhost:3000
 # CORS
 CORS_ORIGIN=http://localhost:3000
 
-# Redis (optional)
-REDIS_HOST=localhost
-REDIS_PORT=6379
+# Redis
+REDIS_URL=redis://localhost:6379
+
+# AI
+OPENAI_API_KEY=sk-your-openai-key
 ```
 
 ### Frontend (.env.local)
@@ -168,44 +170,93 @@ git push origin main
 
 ---
 
-## Render / Railway Deployment (Backend)
+## Render Deployment (Full Stack)
 
-### Using Render.com
+This repo now includes a Render Blueprint at `render.yaml` in the project root.
 
-#### Step 1: Prepare Your Code
+### Option A: Deploy with Blueprint (Recommended)
+
+1. Push your latest code to GitHub.
+2. In Render, click **New** → **Blueprint**.
+3. Select your MediSync repository.
+4. Render will detect `render.yaml` and create:
+   - `medisync-backend` (Node web service)
+   - `medisync-frontend` (Next.js web service)
+   - `medisync-redis` (managed Redis)
+5. Fill required env vars (marked as `sync: false`) before first deploy:
+   - Backend required:
+     - `MONGODB_URI` (MongoDB Atlas)
+     - `EMAIL_USER`
+     - `EMAIL_PASSWORD`
+     - `OPENAI_API_KEY` (if AI endpoints are used)
+     - `FRONTEND_URL` (your Render frontend URL)
+     - `CORS_ORIGIN` (same value as frontend URL)
+   - Frontend required:
+     - `NEXT_PUBLIC_BACKEND_URL` (your Render backend URL, e.g. `https://medisync-backend.onrender.com`)
+     - `OPENAI_API_KEY` (only if frontend server routes use it)
+6. Deploy and wait for healthy checks.
+
+### Option B: Manual Service Creation on Render
+
+#### Backend service
+1. Create a new **Web Service** from this repo.
+2. Use these settings:
+   - Root Directory: `backend`
+   - Environment: `Node`
+   - Build Command: `npm ci && npm run build`
+   - Start Command: `npm start`
+   - Health Check Path: `/health`
+3. Add backend environment variables:
+   - `NODE_ENV=production`
+   - `MONGODB_URI=<atlas-connection-string>`
+   - `REDIS_URL=<render-redis-connection-string>`
+   - `JWT_SECRET=<strong-secret>`
+   - `JWT_EXPIRES_IN=15m`
+   - `REFRESH_SECRET=<strong-secret>`
+   - `REFRESH_EXPIRES_IN=7d`
+   - `EMAIL_SERVICE=gmail`
+   - `EMAIL_USER=<your-email>`
+   - `EMAIL_PASSWORD=<gmail-app-password>`
+   - `EMAIL_FROM=MediSync <noreply@medisync.com>`
+   - `OPENAI_API_KEY=<optional>`
+   - `FRONTEND_URL=<https://your-frontend.onrender.com>`
+   - `CORS_ORIGIN=<https://your-frontend.onrender.com>`
+
+#### Frontend service
+1. Create a second **Web Service** from this repo.
+2. Use these settings:
+   - Root Directory: `frontend`
+   - Environment: `Node`
+   - Build Command: `npm ci && npm run build`
+   - Start Command: `npm start`
+3. Add frontend environment variables:
+   - `NODE_ENV=production`
+   - `NEXT_PUBLIC_BACKEND_URL=<https://your-backend.onrender.com>`
+   - `NEXT_PUBLIC_LOG_LEVEL=info`
+   - `OPENAI_API_KEY=<optional>`
+
+#### Redis service
+1. Create a new **Redis** service in Render.
+2. Copy its internal/external connection string.
+3. Set backend `REDIS_URL` to that connection string.
+
+### Post-Deploy Verification
+
+Run these checks after deployment:
+
 ```bash
-# Make sure backend is in root or create a Render config
-# Push to GitHub
+# Backend health
+curl https://your-backend.onrender.com/health
+
+# Backend base route
+curl https://your-backend.onrender.com/
 ```
 
-#### Step 2: Create Web Service on Render
-1. Go to [render.com](https://render.com)
-2. Click "New" → "Web Service"
-3. Connect your GitHub repository
-4. Configure:
-   - **Name:** medisync-backend
-   - **Root Directory:** `backend`
-   - **Runtime:** Node
-   - **Build Command:** `npm install && npm run build`
-   - **Start Command:** `npm start`
+Expected health response:
 
-#### Step 3: Add Environment Variables
-In Render dashboard, add all your `.env` variables:
-- `MONGODB_URI` (use MongoDB Atlas connection string)
-- `JWT_SECRET`
-- `REFRESH_SECRET`
-- `EMAIL_SERVICE`, `EMAIL_USER`, `EMAIL_PASSWORD`
-- `FRONTEND_URL` (your Vercel URL)
-- etc.
-
-#### Step 4: Deploy
-- Click "Deploy"
-- Render will build and deploy automatically
-
-**Your backend will be at:** `https://medisync-backend.onrender.com`
-
-### Using Railway.app
-Similar process - connect GitHub, set environment variables, and deploy.
+```json
+{"status":"ok","timestamp":"..."}
+```
 
 ---
 
