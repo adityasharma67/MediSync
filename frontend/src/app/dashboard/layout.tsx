@@ -10,10 +10,10 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
 
   const links = [
     { name: "Overview", href: "/dashboard", icon: <LayoutDashboard className="w-5 h-5" /> },
-    { name: "Appointments", href: "/dashboard/appointments", icon: <Calendar className="w-5 h-5" /> },
-    { name: "Consultations", href: "/dashboard/consultations", icon: <Video className="w-5 h-5" /> },
-    { name: "Prescriptions", href: "/dashboard/prescriptions", icon: <FileText className="w-5 h-5" /> },
-    { name: "Settings", href: "/dashboard/settings", icon: <Settings className="w-5 h-5" /> },
+    { name: "Appointments", href: "/appointments", icon: <Calendar className="w-5 h-5" /> },
+    { name: "Consultations", href: "/consultation/video", icon: <Video className="w-5 h-5" /> },
+    { name: "Prescriptions", href: "/prescriptions", icon: <FileText className="w-5 h-5" /> },
+    { name: "Settings", href: "/dashboard/security", icon: <Settings className="w-5 h-5" /> },
   ];
 
   return (

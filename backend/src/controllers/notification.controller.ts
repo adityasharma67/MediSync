@@ -1,6 +1,7 @@
 import { Router, Response } from 'express';
 import { AuthRequest } from '../middlewares/auth.middleware';
 import Notification from '../models/notification.model';
+import { AppError } from '../middlewares/error.middleware';
 
 const router = Router();
 
@@ -15,8 +16,7 @@ export const getNotifications = async (req: AuthRequest, res: Response) => {
     
     res.json(notifications);
   } catch (error: any) {
-    res.status(500);
-    throw new Error(error.message);
+    throw new AppError(500, error.message);
   }
 };
 
@@ -32,14 +32,12 @@ export const markAsRead = async (req: AuthRequest, res: Response) => {
     );
     
     if (!notification) {
-      res.status(404);
-      throw new Error('Notification not found');
+      throw new AppError(404, 'Notification not found');
     }
     
     res.json(notification);
   } catch (error: any) {
-    res.status(500);
-    throw new Error(error.message);
+    throw new AppError(500, error.message);
   }
 };
 
@@ -51,8 +49,7 @@ export const clearNotifications = async (req: AuthRequest, res: Response) => {
     await Notification.deleteMany({ user: req.user._id });
     res.json({ message: 'Notifications cleared' });
   } catch (error: any) {
-    res.status(500);
-    throw new Error(error.message);
+    throw new AppError(500, error.message);
   }
 };
 

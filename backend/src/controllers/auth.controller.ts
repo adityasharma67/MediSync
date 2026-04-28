@@ -15,15 +15,13 @@ export const authUser = async (req: Request, res: Response) => {
 
   try {
     if (!email || !password) {
-      res.status(400);
-      throw new Error('Email and password are required');
+      throw new AppError(400, 'Email and password are required');
     }
 
     const user = await User.findOne({ email }).select('+password +security.twoFactorSecret');
 
     if (!user || !(await user.matchPassword(password))) {
-      res.status(401);
-      throw new Error('Invalid email or password');
+      throw new AppError(401, 'Invalid email or password');
     }
 
     if (user.security?.twoFactorEnabled) {
@@ -86,15 +84,13 @@ export const registerUser = async (req: Request, res: Response) => {
 
   try {
     if (!name || !email || !password) {
-      res.status(400);
-      throw new Error('Name, email, and password are required');
+      throw new AppError(400, 'Name, email, and password are required');
     }
 
     const userExists = await User.findOne({ email });
 
     if (userExists) {
-      res.status(400);
-      throw new Error('User already exists with this email');
+      throw new AppError(400, 'User already exists with this email');
     }
 
     const user = await User.create({
@@ -149,35 +145,30 @@ export const refreshAccessToken = async (req: Request, res: Response) => {
 
   try {
     if (!refreshToken) {
-      res.status(401);
-      throw new Error('Refresh token is required');
+      throw new AppError(401, 'Refresh token is required');
     }
 
     // Verify refresh token
     const decoded = AuthService.verifyRefreshToken(refreshToken);
     if (!decoded) {
-      res.status(401);
-      throw new Error('Invalid or expired refresh token');
+      throw new AppError(401, 'Invalid or expired refresh token');
     }
 
     // Find user and verify stored refresh token
     const user = await User.findById(decoded.id).select('+refreshToken +refreshTokenExpires');
     if (!user || !user.refreshToken) {
-      res.status(401);
-      throw new Error('User not found or refresh token revoked');
+      throw new AppError(401, 'User not found or refresh token revoked');
     }
 
     // Check if refresh token has expired
     if (user.refreshTokenExpires && user.refreshTokenExpires < new Date()) {
-      res.status(401);
-      throw new Error('Refresh token has expired');
+      throw new AppError(401, 'Refresh token has expired');
     }
 
     // Verify the hashed refresh token matches
     const hashedToken = AuthService.hashToken(refreshToken);
     if (hashedToken !== user.refreshToken) {
-      res.status(401);
-      throw new Error('Invalid refresh token');
+      throw new AppError(401, 'Invalid refresh token');
     }
 
     // Generate new access token
@@ -205,8 +196,7 @@ export const forgotPassword = async (req: Request, res: Response) => {
 
   try {
     if (!email) {
-      res.status(400);
-      throw new Error('Email is required');
+      throw new AppError(400, 'Email is required');
     }
 
     const user = await User.findOne({ email });
@@ -230,8 +220,7 @@ export const forgotPassword = async (req: Request, res: Response) => {
       res.json({ message: 'Password reset email sent successfully' });
       logger.info(`Password reset email sent to ${email}`);
     } else {
-      res.status(500);
-      throw new Error('Failed to send password reset email');
+      throw new AppError(500, 'Failed to send password reset email');
     }
   } catch (error) {
     logger.error(`Forgot password error: ${error}`);
@@ -247,18 +236,15 @@ export const resetPassword = async (req: Request, res: Response) => {
 
   try {
     if (!token || !newPassword || !confirmPassword) {
-      res.status(400);
-      throw new Error('Token, new password, and confirmation are required');
+      throw new AppError(400, 'Token, new password, and confirmation are required');
     }
 
     if (newPassword !== confirmPassword) {
-      res.status(400);
-      throw new Error('Passwords do not match');
+      throw new AppError(400, 'Passwords do not match');
     }
 
     if (newPassword.length < 8) {
-      res.status(400);
-      throw new Error('Password must be at least 8 characters');
+      throw new AppError(400, 'Password must be at least 8 characters');
     }
 
     // Hash the token to match with stored token
@@ -271,8 +257,7 @@ export const resetPassword = async (req: Request, res: Response) => {
     }).select('+resetPasswordToken +resetPasswordExpires');
 
     if (!user) {
-      res.status(400);
-      throw new Error('Invalid or expired reset token');
+      throw new AppError(400, 'Invalid or expired reset token');
     }
 
     // Update password
@@ -298,8 +283,7 @@ export const googleAuth = async (req: Request, res: Response) => {
 
   try {
     if (!email || !name) {
-      res.status(400);
-      throw new Error('Email and name are required');
+      throw new AppError(400, 'Email and name are required');
     }
 
     let user = await User.findOne({ email });

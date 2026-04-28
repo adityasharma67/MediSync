@@ -48,13 +48,13 @@ export default function DashboardLayout({
       { label: 'My Appointments', href: '/appointments' },
       { label: 'Messages', href: '/dashboard/messages' },
       { label: 'Analytics', href: '/dashboard/analytics' },
-      { label: 'Create Prescription', href: '/prescriptions/create' },
-      { label: 'Availability', href: '/availability' },
+      { label: 'Prescriptions', href: '/prescriptions' },
+      { label: 'Book Appointment', href: '/appointments/book' },
     ],
     admin: [
       { label: 'Dashboard', href: '/dashboard/admin' },
-      { label: 'Users', href: '/admin/users' },
-      { label: 'Appointments', href: '/admin/appointments' },
+      { label: 'All Appointments', href: '/appointments' },
+      { label: 'Messages', href: '/dashboard/messages' },
       { label: 'Analytics', href: '/dashboard/analytics' },
     ],
   };

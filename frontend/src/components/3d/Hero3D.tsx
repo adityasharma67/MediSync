@@ -1,61 +1,89 @@
 'use client';
 
-import { useRef, useEffect } from 'react';
-import { Canvas, useFrame } from '@react-three/fiber';
-import { OrbitControls, Sphere, Float } from '@react-three/drei';
-import * as THREE from 'three';
-
-const AnimatedBackground = () => {
-  return (
-    <Canvas camera={{ position: [0, 0, 8], fov: 75 }} style={{ width: '100%', height: '100%' }}>
-      <OrbitControls autoRotate autoRotateSpeed={2} />
-      <ambientLight intensity={0.8} />
-      <pointLight position={[10, 10, 10]} intensity={1} />
-
-      {/* Central Sphere */}
-      <Float speed={1.5} rotationIntensity={1.5} floatIntensity={2}>
-        <Sphere args={[1.5, 64, 200]} scale={1}>
-          <meshStandardMaterial
-            color="#3b82f6"
-            emissive="#1e40af"
-            roughness={0.2}
-            metalness={0.8}
-            wireframe={true}
-          />
-        </Sphere>
-      </Float>
-
-      {/* Orbiting Particles */}
-      {[...Array(20)].map((_, i) => (
-        <OrbitingParticle key={i} distance={4 + i * 0.3} speed={0.5 + i * 0.1} color={['#10b981', '#3b82f6', '#f59e0b'][i % 3]} />
-      ))}
-    </Canvas>
-  );
-};
-
-const OrbitingParticle = ({ distance, speed, color }: { distance: number; speed: number; color: string }) => {
-  const ref = useRef<THREE.Mesh>(null);
-
-  useFrame(({ clock }) => {
-    const t = clock.getElapsedTime() * speed;
-    if (ref.current) {
-      ref.current.position.x = Math.cos(t) * distance;
-      ref.current.position.z = Math.sin(t) * distance;
-    }
-  });
-
-  return (
-    <mesh ref={ref}>
-      <sphereGeometry args={[0.2, 32, 32]} />
-      <meshStandardMaterial color={color} emissive={color} emissiveIntensity={0.8} />
-    </mesh>
-  );
-};
+import { motion } from 'framer-motion';
+import { useEffect, useState } from 'react';
 
 export default function Hero3D() {
+  const [isLoaded, setIsLoaded] = useState(false);
+
+  useEffect(() => {
+    setIsLoaded(true);
+  }, []);
+
   return (
-    <div className="absolute inset-0 w-full h-full">
-      <AnimatedBackground />
+    <div className="absolute inset-0 w-full h-full overflow-hidden">
+      {/* Gradient background */}
+      <div className="absolute inset-0 bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900" />
+
+      {/* Animated gradient orbs */}
+      <motion.div
+        className="absolute -top-40 -left-40 h-80 w-80 rounded-full bg-gradient-to-br from-blue-500 to-purple-600 blur-3xl opacity-30"
+        animate={{ 
+          x: [0, 100, 0],
+          y: [0, 50, 0],
+        }}
+        transition={{ 
+          duration: 20, 
+          repeat: Infinity,
+          ease: 'easeInOut'
+        }}
+      />
+      
+      <motion.div
+        className="absolute -bottom-40 -right-40 h-80 w-80 rounded-full bg-gradient-to-bl from-pink-500 to-purple-600 blur-3xl opacity-20"
+        animate={{ 
+          x: [0, -100, 0],
+          y: [0, -50, 0],
+        }}
+        transition={{ 
+          duration: 25, 
+          repeat: Infinity,
+          ease: 'easeInOut'
+        }}
+      />
+      
+      <motion.div
+        className="absolute top-1/3 right-1/4 h-60 w-60 rounded-full bg-gradient-to-br from-cyan-400 to-blue-500 blur-3xl opacity-20"
+        animate={{ 
+          x: [0, -80, 0],
+          y: [0, 80, 0],
+        }}
+        transition={{ 
+          duration: 22, 
+          repeat: Infinity,
+          ease: 'easeInOut'
+        }}
+      />
+
+      {/* Grid overlay */}
+      <div className="absolute inset-0 opacity-10" style={{
+        backgroundImage: 'linear-gradient(rgba(255,255,255,.1) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,.1) 1px, transparent 1px)',
+        backgroundSize: '60px 60px'
+      }} />
+
+      {/* Floating particles */}
+      <div className="absolute inset-0 pointer-events-none">
+        {[...Array(10)].map((_, i) => (
+          <motion.div
+            key={i}
+            className="absolute h-1 w-1 rounded-full bg-blue-400"
+            initial={{ 
+              x: Math.random() * 1000,
+              y: Math.random() * 1000,
+              opacity: 0
+            }}
+            animate={{ 
+              y: -1000,
+              opacity: [0, 1, 0]
+            }}
+            transition={{ 
+              duration: 8 + Math.random() * 4, 
+              repeat: Infinity,
+              ease: 'linear'
+            }}
+          />
+        ))}
+      </div>
     </div>
   );
 }

@@ -1,6 +1,7 @@
 import { Response } from 'express';
 import Prescription from '../models/prescription.model';
 import { AuthRequest } from '../middlewares/auth.middleware';
+import { AppError } from '../middlewares/error.middleware';
 
 // @desc    Create a new prescription
 // @route   POST /api/prescriptions
@@ -9,8 +10,7 @@ export const createPrescription = async (req: AuthRequest, res: Response) => {
   const { appointmentId, patientId, diagnosis, medications, notes } = req.body;
 
   if (req.user.role !== 'doctor') {
-    res.status(403);
-    throw new Error('Only doctors can create prescriptions');
+    throw new AppError(403, 'Only doctors can create prescriptions');
   }
 
   const prescription = await Prescription.create({
@@ -56,8 +56,7 @@ export const getPrescriptionById = async (req: AuthRequest, res: Response) => {
     .populate('appointment', 'date time');
 
   if (!prescription) {
-    res.status(404);
-    throw new Error('Prescription not found');
+    throw new AppError(404, 'Prescription not found');
   }
 
   // Authorize
@@ -66,8 +65,7 @@ export const getPrescriptionById = async (req: AuthRequest, res: Response) => {
     prescription.doctor._id.toString() !== req.user._id.toString() &&
     req.user.role !== 'admin'
   ) {
-    res.status(403);
-    throw new Error('Not authorized to view this prescription');
+    throw new AppError(403, 'Not authorized to view this prescription');
   }
 
   res.json(prescription);

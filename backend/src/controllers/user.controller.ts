@@ -5,6 +5,7 @@ import redis from '../config/redis';
 import logger from '../utils/logger';
 import recommendationService from '../services/recommendation.service';
 import geoService from '../services/geo.service';
+import { AppError } from '../middlewares/error.middleware';
 
 // @desc    Get user profile
 // @route   GET /api/users/profile
@@ -21,8 +22,7 @@ export const getUserProfile = async (req: AuthRequest, res: Response) => {
       avatar: user.avatar,
     });
   } else {
-    res.status(404);
-    throw new Error('User not found');
+    throw new AppError(404, 'User not found');
   }
 };
 
@@ -65,8 +65,7 @@ export const updateUserProfile = async (req: AuthRequest, res: Response) => {
       doctorProfile: updatedUser.doctorProfile,
     });
   } else {
-    res.status(404);
-    throw new Error('User not found');
+    throw new AppError(404, 'User not found');
   }
 };
 

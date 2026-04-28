@@ -148,8 +148,7 @@ export const updateAppointment = async (req: AuthRequest, res: Response) => {
   const appointment = await Appointment.findById(req.params.id);
 
   if (!appointment) {
-    res.status(404);
-    throw new Error('Appointment not found');
+    throw new AppError(404, 'Appointment not found');
   }
 
   // Ensure only the involved patient, doctor, or an admin can update
@@ -158,8 +157,7 @@ export const updateAppointment = async (req: AuthRequest, res: Response) => {
     appointment.doctor.toString() !== req.user._id.toString() &&
     req.user.role !== 'admin'
   ) {
-    res.status(403);
-    throw new Error('Not authorized to update this appointment');
+    throw new AppError(403, 'Not authorized to update this appointment');
   }
 
   appointment.status = status || appointment.status;
@@ -186,8 +184,7 @@ export const updateAppointment = async (req: AuthRequest, res: Response) => {
     res.json(updatedAppointment);
   } catch (error: any) {
     if (error.code === 11000) {
-      res.status(400);
-      throw new Error('This slot is already booked');
+      throw new AppError(400, 'This slot is already booked');
     }
     throw error;
   }

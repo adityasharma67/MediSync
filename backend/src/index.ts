@@ -38,8 +38,9 @@ app.set('trust proxy', 1);
 // Initialize Socket.io
 const io = new Server(httpServer, {
   cors: {
-    origin: '*', // Set to frontend URL in production
-    methods: ['GET', 'POST']
+    origin: process.env.CORS_ORIGIN || 'http://localhost:3000',
+    methods: ['GET', 'POST'],
+    credentials: true
   }
 });
 initializeSocketService(io);
