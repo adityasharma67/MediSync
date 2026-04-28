@@ -15,18 +15,24 @@ export const authUser = async (req: Request, res: Response) => {
 
   try {
     if (!email || !password) {
+      res.status(400);
       throw new AppError(400, 'Email and password are required');
     }
 
-    const user = await User.findOne({ email }).select('+password +security.twoFactorSecret');
+    const userQuery = User.findOne({ email }) as any;
+    const user = typeof userQuery?.select === 'function'
+      ? await userQuery.select('+password +security.twoFactorSecret')
+      : await userQuery;
 
     if (!user || !(await user.matchPassword(password))) {
+      res.status(401);
       throw new AppError(401, 'Invalid email or password');
     }
 
     if (user.security?.twoFactorEnabled) {
       const expectedCode = user.security.twoFactorSecret?.slice(-6).toUpperCase();
       if (!twoFactorCode || twoFactorCode.toUpperCase() !== expectedCode) {
+        res.status(401);
         throw new AppError(401, 'Two-factor authentication code is required');
       }
     }
@@ -47,7 +53,7 @@ export const authUser = async (req: Request, res: Response) => {
 
     await securityService.recordLogin(user._id.toString(), {
       deviceId,
-      userAgent: req.headers['user-agent'],
+      userAgent: req.headers?.['user-agent'],
       ip: req.ip,
     });
 
@@ -84,12 +90,20 @@ export const registerUser = async (req: Request, res: Response) => {
 
   try {
     if (!name || !email || !password) {
+<<<<<<< HEAD
+=======
+      res.status(400);
+>>>>>>> 7a965c6 (Fix auth flow and protected route handling)
       throw new AppError(400, 'Name, email, and password are required');
     }
 
     const userExists = await User.findOne({ email });
 
     if (userExists) {
+<<<<<<< HEAD
+=======
+      res.status(400);
+>>>>>>> 7a965c6 (Fix auth flow and protected route handling)
       throw new AppError(400, 'User already exists with this email');
     }
 
@@ -145,29 +159,49 @@ export const refreshAccessToken = async (req: Request, res: Response) => {
 
   try {
     if (!refreshToken) {
+<<<<<<< HEAD
+=======
+      res.status(401);
+>>>>>>> 7a965c6 (Fix auth flow and protected route handling)
       throw new AppError(401, 'Refresh token is required');
     }
 
     // Verify refresh token
     const decoded = AuthService.verifyRefreshToken(refreshToken);
     if (!decoded) {
+<<<<<<< HEAD
+=======
+      res.status(401);
+>>>>>>> 7a965c6 (Fix auth flow and protected route handling)
       throw new AppError(401, 'Invalid or expired refresh token');
     }
 
     // Find user and verify stored refresh token
     const user = await User.findById(decoded.id).select('+refreshToken +refreshTokenExpires');
     if (!user || !user.refreshToken) {
+<<<<<<< HEAD
+=======
+      res.status(401);
+>>>>>>> 7a965c6 (Fix auth flow and protected route handling)
       throw new AppError(401, 'User not found or refresh token revoked');
     }
 
     // Check if refresh token has expired
     if (user.refreshTokenExpires && user.refreshTokenExpires < new Date()) {
+<<<<<<< HEAD
+=======
+      res.status(401);
+>>>>>>> 7a965c6 (Fix auth flow and protected route handling)
       throw new AppError(401, 'Refresh token has expired');
     }
 
     // Verify the hashed refresh token matches
     const hashedToken = AuthService.hashToken(refreshToken);
     if (hashedToken !== user.refreshToken) {
+<<<<<<< HEAD
+=======
+      res.status(401);
+>>>>>>> 7a965c6 (Fix auth flow and protected route handling)
       throw new AppError(401, 'Invalid refresh token');
     }
 
@@ -196,6 +230,10 @@ export const forgotPassword = async (req: Request, res: Response) => {
 
   try {
     if (!email) {
+<<<<<<< HEAD
+=======
+      res.status(400);
+>>>>>>> 7a965c6 (Fix auth flow and protected route handling)
       throw new AppError(400, 'Email is required');
     }
 
@@ -236,14 +274,26 @@ export const resetPassword = async (req: Request, res: Response) => {
 
   try {
     if (!token || !newPassword || !confirmPassword) {
+<<<<<<< HEAD
+=======
+      res.status(400);
+>>>>>>> 7a965c6 (Fix auth flow and protected route handling)
       throw new AppError(400, 'Token, new password, and confirmation are required');
     }
 
     if (newPassword !== confirmPassword) {
+<<<<<<< HEAD
+=======
+      res.status(400);
+>>>>>>> 7a965c6 (Fix auth flow and protected route handling)
       throw new AppError(400, 'Passwords do not match');
     }
 
     if (newPassword.length < 8) {
+<<<<<<< HEAD
+=======
+      res.status(400);
+>>>>>>> 7a965c6 (Fix auth flow and protected route handling)
       throw new AppError(400, 'Password must be at least 8 characters');
     }
 
@@ -257,6 +307,10 @@ export const resetPassword = async (req: Request, res: Response) => {
     }).select('+resetPasswordToken +resetPasswordExpires');
 
     if (!user) {
+<<<<<<< HEAD
+=======
+      res.status(400);
+>>>>>>> 7a965c6 (Fix auth flow and protected route handling)
       throw new AppError(400, 'Invalid or expired reset token');
     }
 
@@ -283,6 +337,10 @@ export const googleAuth = async (req: Request, res: Response) => {
 
   try {
     if (!email || !name) {
+<<<<<<< HEAD
+=======
+      res.status(400);
+>>>>>>> 7a965c6 (Fix auth flow and protected route handling)
       throw new AppError(400, 'Email and name are required');
     }
 

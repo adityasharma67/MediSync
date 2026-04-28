@@ -1,70 +1,92 @@
 "use client";
 
-import { motion } from "framer-motion";
-import Link from "next/link";
-import { LayoutDashboard, Calendar, Video, FileText, Settings, LogOut } from "lucide-react";
-import { usePathname } from "next/navigation";
+import { useEffect, useMemo, useState } from "react";
+import { usePathname, useRouter } from "next/navigation";
+import useAuthStore from "@/store/authStore";
+import { apiClient } from "@/lib/api";
+
+const getRequiredRole = (pathname: string) => {
+  if (pathname.startsWith('/dashboard/admin')) {
+    return 'admin' as const;
+  }
+
+  if (pathname.startsWith('/dashboard/doctor')) {
+    return 'doctor' as const;
+  }
+
+  return 'patient' as const;
+};
 
 export default function DashboardLayout({ children }: { children: React.ReactNode }) {
+  const router = useRouter();
   const pathname = usePathname();
+  const { user, accessToken, setUser, logout } = useAuthStore();
+  const [isCheckingAuth, setIsCheckingAuth] = useState(true);
+  const requiredRole = useMemo(() => getRequiredRole(pathname), [pathname]);
 
-  const links = [
-    { name: "Overview", href: "/dashboard", icon: <LayoutDashboard className="w-5 h-5" /> },
-    { name: "Appointments", href: "/appointments", icon: <Calendar className="w-5 h-5" /> },
-    { name: "Consultations", href: "/consultation/video", icon: <Video className="w-5 h-5" /> },
-    { name: "Prescriptions", href: "/prescriptions", icon: <FileText className="w-5 h-5" /> },
-    { name: "Settings", href: "/dashboard/security", icon: <Settings className="w-5 h-5" /> },
-  ];
+  useEffect(() => {
+    let isActive = true;
 
-  return (
-    <div className="min-h-screen bg-gray-50 dark:bg-gray-900 pt-16 flex">
-      {/* Sidebar */}
-      <div className="w-64 glass border-r border-gray-200 dark:border-gray-800 hidden md:block fixed h-[calc(100vh-4rem)]">
-        <div className="p-6 space-y-4">
-          <div className="mb-8">
-            <h2 className="text-xl font-bold text-gray-900 dark:text-white">Patient Portal</h2>
-            <p className="text-sm text-gray-500">Welcome, John Doe</p>
-          </div>
+    const verifyAuth = async () => {
+      if (!accessToken) {
+        router.replace('/login');
+        if (isActive) {
+          setIsCheckingAuth(false);
+        }
+        return;
+      }
 
-          <nav className="space-y-2">
-            {links.map((link) => {
-              const isActive = pathname === link.href;
-              return (
-                <Link
-                  key={link.name}
-                  href={link.href}
-                  className={`flex items-center gap-3 px-4 py-3 rounded-xl transition-all ${
-                    isActive 
-                      ? "bg-primary-50 text-primary-600 dark:bg-primary-900/50 dark:text-primary-400 font-medium" 
-                      : "text-gray-600 hover:bg-gray-100 dark:text-gray-400 dark:hover:bg-gray-800"
-                  }`}
-                >
-                  {link.icon}
-                  {link.name}
-                </Link>
-              );
-            })}
-          </nav>
-        </div>
+      try {
+        let currentUser = user;
 
-        <div className="absolute bottom-6 w-full px-6">
-          <button className="flex items-center gap-3 px-4 py-3 rounded-xl text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20 w-full transition-all">
-            <LogOut className="w-5 h-5" />
-            Sign Out
-          </button>
+        if (!currentUser) {
+          const response = await apiClient.getMe();
+          currentUser = response.data;
+
+          if (isActive) {
+            setUser(currentUser);
+          }
+        }
+
+        if (currentUser && currentUser.role !== requiredRole) {
+          router.replace(`/dashboard/${currentUser.role}`);
+          if (isActive) {
+            setIsCheckingAuth(false);
+          }
+          return;
+        }
+
+        if (isActive) {
+          setIsCheckingAuth(false);
+        }
+      } catch {
+        logout();
+        router.replace('/login');
+        if (isActive) {
+          setIsCheckingAuth(false);
+        }
+      }
+    };
+
+    verifyAuth();
+
+    return () => {
+      isActive = false;
+    };
+  }, [accessToken, logout, pathname, requiredRole, router, setUser, user]);
+
+  if (isCheckingAuth) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gray-50 dark:bg-gray-900">
+        <div className="flex flex-col items-center gap-3 rounded-2xl border border-gray-200 bg-white px-6 py-5 shadow-sm dark:border-gray-800 dark:bg-gray-900">
+          <div className="h-8 w-8 animate-spin rounded-full border-2 border-primary-500 border-t-transparent" />
+          <p className="text-sm text-gray-600 dark:text-gray-400">Checking your session...</p>
         </div>
       </div>
+    );
+  }
 
-      {/* Main Content */}
-      <main className="flex-1 md:ml-64 p-8">
-        <motion.div
-          initial={{ opacity: 0, y: 10 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.4 }}
-        >
-          {children}
-        </motion.div>
-      </main>
-    </div>
+  return (
+    <>{children}</>
   );
 }

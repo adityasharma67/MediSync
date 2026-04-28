@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import { useState, useEffect } from "react";
 import { Menu, X, Moon, Sun, Bell, LogOut, User, Settings, Home } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
-import useAuthStore from "@/store/authStore";
+import { useAuth } from "@/hooks/useAuth";
 import useNotificationStore from "@/store/notificationStore";
 
 export default function Navbar() {
@@ -13,7 +13,7 @@ export default function Navbar() {
   const [isOpen, setIsOpen] = useState(false);
   const [isDark, setIsDark] = useState(false);
   const [showProfileMenu, setShowProfileMenu] = useState(false);
-  const { user, logout } = useAuthStore();
+  const { user, logout } = useAuth();
   const { unreadCount } = useNotificationStore();
 
   useEffect(() => {
@@ -40,7 +40,7 @@ export default function Navbar() {
 
   const handleLogout = async () => {
     try {
-      await useAuthStore.getState().logout();
+      await logout();
       router.push("/login");
     } catch (error) {
       console.error("Logout failed:", error);

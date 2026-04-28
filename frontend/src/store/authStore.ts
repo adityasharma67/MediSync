@@ -2,6 +2,14 @@ import { create } from 'zustand';
 import { IUser, UserRole } from '@/types';
 import { apiClient } from '@/lib/api';
 
+const getStoredToken = (key: 'accessToken' | 'refreshToken') => {
+  if (typeof window === 'undefined') {
+    return null;
+  }
+
+  return localStorage.getItem(key);
+};
+
 interface AuthState {
   user: IUser | null;
   accessToken: string | null;
@@ -28,8 +36,8 @@ interface AuthState {
 
 const useAuthStore = create<AuthState>((set, get) => ({
   user: null,
-  accessToken: null,
-  refreshToken: null,
+  accessToken: getStoredToken('accessToken'),
+  refreshToken: getStoredToken('refreshToken'),
   isLoading: false,
   error: null,
 
