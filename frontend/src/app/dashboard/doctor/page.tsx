@@ -119,7 +119,7 @@ export default function DoctorDashboard() {
                       {appointment.patient.name || 'Patient'}
                     </p>
                     <p className="text-sm text-gray-600 dark:text-gray-400">
-                      {new Date(appointment.date).toLocaleDateString()} at {appointment.time}
+                      {new Date(appointment.scheduledAt || appointment.date || '').toLocaleDateString()} at {appointment.time || 'TBD'}
                     </p>
                     <p className="text-xs text-gray-500 dark:text-gray-500">
                       Source: {appointment.source || 'standard'}

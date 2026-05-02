@@ -1,50 +1,58 @@
 import { Request, Response, NextFunction } from 'express';
 import jwt from 'jsonwebtoken';
-import User from '../models/user.model';
 import AuthService from '../services/auth.service';
+import logger from '../utils/logger';
 
 // Extend Express Request interface to include user
 export interface AuthRequest extends Request {
-  user?: any;
+  user?: {
+    id: string;
+    email: string;
+    role: 'patient' | 'doctor' | 'admin';
+    _id: string;
+  };
 }
 
-export const protect = async (req: AuthRequest, res: Response, next: NextFunction) => {
+export const protect = async (req: Request, res: Response, next: NextFunction) => {
   let token;
 
   if (req.headers.authorization && req.headers.authorization.startsWith('Bearer')) {
     try {
       token = req.headers.authorization.split(' ')[1];
-      
+
       // Verify access token
-      const decoded: any = AuthService.verifyAccessToken(token);
-      
+      const decoded = AuthService.verifyAccessToken(token);
+
       if (!decoded) {
-        res.status(401);
-        throw new Error('Not authorized, token failed or expired');
+        return res.status(401).json({ error: 'Token expired or invalid' });
       }
 
-      req.user = await User.findById(decoded.id).select('-password');
-      if (!req.user) {
-        res.status(401);
-        throw new Error('Not authorized, user not found');
-      }
+      // Attach user data to request
+      (req as AuthRequest).user = {
+        id: decoded.id,
+        email: decoded.email,
+        role: decoded.role as 'patient' | 'doctor' | 'admin',
+        _id: decoded.id,
+      };
+
       next();
     } catch (error) {
-      console.error(error);
-      res.status(401);
-      next(new Error('Not authorized, token failed'));
+      logger.error(`Auth error: ${error}`);
+      return res.status(401).json({ error: 'Not authorized' });
     }
   } else {
-    res.status(401);
-    next(new Error('Not authorized, no token provided'));
+    logger.warn('No token provided in authorization header');
+    return res.status(401).json({ error: 'No token provided' });
   }
 };
 
 export const restrictTo = (...roles: string[]) => {
-  return (req: AuthRequest, res: Response, next: NextFunction) => {
-    if (!req.user || !roles.includes(req.user.role)) {
-      res.status(403);
-      return next(new Error('Not authorized to access this route'));
+  return (req: Request, res: Response, next: NextFunction) => {
+    const authRequest = req as AuthRequest;
+
+    if (!authRequest.user || !roles.includes(authRequest.user.role)) {
+      logger.warn(`Unauthorized access attempt. User role: ${authRequest.user?.role}, required: ${roles.join(', ')}`);
+      return res.status(403).json({ error: 'Not authorized for this resource' });
     }
     next();
   };

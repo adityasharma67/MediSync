@@ -1,26 +1,24 @@
 import express from 'express';
 import {
-  getDoctorRecommendations,
-  getUserProfile,
-  getNearbyDoctors,
-  updateUserProfile,
+  getCurrentUser,
+  updateCurrentUser,
   getDoctors,
-  getUsers,
+  getDoctorProfile,
 } from '../controllers/user.controller';
-import { protect, restrictTo } from '../middlewares/auth.middleware';
+import { protect } from '../middlewares/auth.middleware';
 import { asyncHandler } from '../middlewares/error.middleware';
 
 const router = express.Router();
 
-router.route('/profile')
-  .get(protect, asyncHandler(getUserProfile))
-  .put(protect, asyncHandler(updateUserProfile));
+// Current user routes (protected)
+router.use('/me', protect);
+router
+  .route('/me')
+  .get(asyncHandler(getCurrentUser))
+  .put(asyncHandler(updateCurrentUser));
 
+// Public doctor routes
 router.get('/doctors', asyncHandler(getDoctors));
-router.get('/doctors/recommendations', asyncHandler(getDoctorRecommendations));
-router.get('/doctors/nearby', asyncHandler(getNearbyDoctors));
-
-// Admin only routes
-router.get('/', protect, restrictTo('admin'), asyncHandler(getUsers));
+router.get('/doctors/:id', asyncHandler(getDoctorProfile));
 
 export default router;

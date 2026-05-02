@@ -2,159 +2,131 @@ import { Request, Response } from 'express';
 import User from '../models/user.model';
 import AuthService from '../services/auth.service';
 import logger from '../utils/logger';
-import crypto from 'crypto';
-import securityService from '../services/security.service';
-import Notification from '../models/notification.model';
 import { AppError } from '../middlewares/error.middleware';
 
-// @desc    Auth user & get tokens
-// @route   POST /api/auth/login
-// @access  Public
-export const authUser = async (req: Request, res: Response) => {
-  const { email, password, twoFactorCode, deviceId } = req.body;
+export const login = async (req: Request, res: Response) => {
+  const { email, password } = req.body;
 
-  try {
-    if (!email || !password) {
-      res.status(400);
-      throw new AppError(400, 'Email and password are required');
-    }
-
-    const userQuery = User.findOne({ email }) as any;
-    const user = typeof userQuery?.select === 'function'
-      ? await userQuery.select('+password +security.twoFactorSecret')
-      : await userQuery;
-
-    if (!user || !(await user.matchPassword(password))) {
-      res.status(401);
-      throw new AppError(401, 'Invalid email or password');
-    }
-
-    if (user.security?.twoFactorEnabled) {
-      const expectedCode = user.security.twoFactorSecret?.slice(-6).toUpperCase();
-      if (!twoFactorCode || twoFactorCode.toUpperCase() !== expectedCode) {
-        res.status(401);
-        throw new AppError(401, 'Two-factor authentication code is required');
-      }
-    }
-
-    // Generate tokens
-    const accessToken = AuthService.generateAccessToken(
-      user._id.toString(),
-      user.email,
-      user.role
-    );
-    const refreshToken = AuthService.generateRefreshToken(user._id.toString());
-
-    // Store refresh token (hashed) in database with expiry
-    const hashedRefreshToken = AuthService.hashToken(refreshToken);
-    user.refreshToken = hashedRefreshToken;
-    user.refreshTokenExpires = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000); // 7 days
-    await user.save();
-
-    await securityService.recordLogin(user._id.toString(), {
-      deviceId,
-      userAgent: req.headers?.['user-agent'],
-      ip: req.ip,
-    });
-
-    if (user.security?.loginAlertsEnabled) {
-      await Notification.create({
-        user: user._id,
-        title: 'New login detected',
-        message: `A login was recorded from ${req.headers['user-agent'] || 'an unknown device'}.`,
-        type: 'system',
-      });
-    }
-
-    res.json({
-      _id: user._id,
-      name: user.name,
-      email: user.email,
-      role: user.role,
-      avatar: user.avatar,
-      accessToken,
-      refreshToken,
-      expiresIn: process.env.JWT_EXPIRES_IN || '15m',
-    });
-  } catch (error) {
-    logger.error(`Login error: ${error}`);
-    throw error;
+  if (!email || !password) {
+    throw new AppError(400, 'Email and password are required');
   }
+
+  const user = await User.findOne({ email }).select('+password');
+  if (!user || !(await user.matchPassword(password))) {
+    throw new AppError(401, 'Invalid email or password');
+  }
+
+  const accessToken = AuthService.generateAccessToken(user._id.toString(), user.email, user.role);
+  const refreshToken = AuthService.generateRefreshToken(user._id.toString());
+
+  user.refreshToken = AuthService.hashToken(refreshToken);
+  user.refreshTokenExpires = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000);
+  await user.save();
+
+  logger.info(`User ${user.email} logged in`);
+
+  res.json({
+    _id: user._id,
+    name: user.name,
+    email: user.email,
+    role: user.role,
+    avatar: user.avatar,
+    accessToken,
+    refreshToken,
+    expiresIn: process.env.JWT_EXPIRES_IN || '15m',
+  });
 };
 
-// @desc    Register a new user
-// @route   POST /api/auth/signup
-// @access  Public
-export const registerUser = async (req: Request, res: Response) => {
-  const { name, email, password, role, deviceId } = req.body;
+export const signup = async (req: Request, res: Response) => {
+  const { name, email, password, role } = req.body;
 
-  try {
-    if (!name || !email || !password) {
-<<<<<<< HEAD
-=======
-      res.status(400);
->>>>>>> 7a965c6 (Fix auth flow and protected route handling)
-      throw new AppError(400, 'Name, email, and password are required');
-    }
-
-    const userExists = await User.findOne({ email });
-
-    if (userExists) {
-<<<<<<< HEAD
-=======
-      res.status(400);
->>>>>>> 7a965c6 (Fix auth flow and protected route handling)
-      throw new AppError(400, 'User already exists with this email');
-    }
-
-    const user = await User.create({
-      name,
-      email,
-      password,
-      role: role || 'patient',
-      isEmailVerified: false,
-    });
-
-    // Generate tokens
-    const accessToken = AuthService.generateAccessToken(
-      user._id.toString(),
-      user.email,
-      user.role
-    );
-    const refreshToken = AuthService.generateRefreshToken(user._id.toString());
-
-    // Store refresh token
-    const hashedRefreshToken = AuthService.hashToken(refreshToken);
-    user.refreshToken = hashedRefreshToken;
-    user.refreshTokenExpires = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000);
-    await user.save();
-
-    await securityService.recordLogin(user._id.toString(), {
-      deviceId,
-      userAgent: req.headers['user-agent'],
-      ip: req.ip,
-    });
-
-    res.status(201).json({
-      _id: user._id,
-      name: user.name,
-      email: user.email,
-      role: user.role,
-      avatar: user.avatar,
-      accessToken,
-      refreshToken,
-      expiresIn: process.env.JWT_EXPIRES_IN || '15m',
-    });
-  } catch (error) {
-    logger.error(`Signup error: ${error}`);
-    throw error;
+  if (!name || !email || !password) {
+    throw new AppError(400, 'Name, email, and password are required');
   }
+
+  const existingUser = await User.findOne({ email });
+  if (existingUser) {
+    throw new AppError(400, 'User already exists with this email');
+  }
+
+  const user = await User.create({
+    name,
+    email,
+    password,
+    role: role === 'doctor' ? 'doctor' : 'patient',
+  });
+
+  const accessToken = AuthService.generateAccessToken(user._id.toString(), user.email, user.role);
+  const refreshToken = AuthService.generateRefreshToken(user._id.toString());
+
+  user.refreshToken = AuthService.hashToken(refreshToken);
+  user.refreshTokenExpires = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000);
+  await user.save();
+
+  logger.info(`User ${user.email} signed up`);
+
+  res.status(201).json({
+    _id: user._id,
+    name: user.name,
+    email: user.email,
+    role: user.role,
+    avatar: user.avatar,
+    accessToken,
+    refreshToken,
+    expiresIn: process.env.JWT_EXPIRES_IN || '15m',
+  });
 };
 
-// @desc    Refresh access token
-// @route   POST /api/auth/refresh
-// @access  Public
-export const refreshAccessToken = async (req: Request, res: Response) => {
+export const refreshToken = async (req: Request, res: Response) => {
+  const { refreshToken: token } = req.body;
+
+  if (!token) {
+    throw new AppError(400, 'Refresh token is required');
+  }
+
+  const decoded = AuthService.verifyRefreshToken(token);
+  if (!decoded) {
+    throw new AppError(401, 'Invalid or expired refresh token');
+  }
+
+  const user = await User.findById(decoded.id);
+  if (!user) {
+    throw new AppError(404, 'User not found');
+  }
+
+  const hashedToken = AuthService.hashToken(token);
+  if (user.refreshToken !== hashedToken) {
+    throw new AppError(401, 'Refresh token mismatch');
+  }
+
+  if (user.refreshTokenExpires && user.refreshTokenExpires < new Date()) {
+    throw new AppError(401, 'Refresh token expired');
+  }
+
+  const accessToken = AuthService.generateAccessToken(user._id.toString(), user.email, user.role);
+
+  res.json({
+    accessToken,
+    expiresIn: process.env.JWT_EXPIRES_IN || '15m',
+  });
+};
+
+export const logout = async (req: Request, res: Response) => {
+  const authRequest = req as Request & { user?: { id: string } };
+
+  if (!authRequest.user?.id) {
+    throw new AppError(401, 'Authentication required');
+  }
+
+  const user = await User.findById(authRequest.user.id);
+  if (user) {
+    user.refreshToken = undefined;
+    user.refreshTokenExpires = undefined;
+    await user.save();
+  }
+
+  res.json({ message: 'Logged out successfully' });
+};
   const { refreshToken } = req.body;
 
   try {
@@ -411,3 +383,7 @@ export const logout = async (req: any, res: Response) => {
     throw error;
   }
 };
+=======
+  res.json({ message: 'Logged out successfully' });
+};
+>>>>>>> c2eb2e3 (Simplify MediSync backend and WebRTC flow)

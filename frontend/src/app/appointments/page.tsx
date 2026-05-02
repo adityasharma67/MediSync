@@ -109,7 +109,7 @@ export default function AppointmentsPage() {
                   <div className="grid md:grid-cols-2 gap-4 mb-4">
                     <div className="flex items-center gap-2 text-gray-700 dark:text-gray-300">
                       <Calendar className="w-4 h-4" />
-                      {new Date(appointment.date).toLocaleDateString()}
+                      {new Date(appointment.scheduledAt || appointment.date || '').toLocaleDateString()}
                     </div>
                     <div className="flex items-center gap-2 text-gray-700 dark:text-gray-300">
                       <Clock className="w-4 h-4" />

@@ -1,27 +1,30 @@
 import express from 'express';
 import {
   bookAppointment,
-  createEmergencyBooking,
   getMyAppointments,
-  updateAppointment,
+  getAppointmentById,
+  updateAppointmentStatus,
+  deleteAppointment,
 } from '../controllers/appointment.controller';
 import { protect } from '../middlewares/auth.middleware';
 import { asyncHandler } from '../middlewares/error.middleware';
-import { validate } from '../middlewares/validate.middleware';
-import {
-  bookAppointmentSchema,
-  updateAppointmentSchema,
-} from '../validators/appointment.validator';
 
 const router = express.Router();
 
-router.route('/')
-  .post(protect, validate(bookAppointmentSchema), asyncHandler(bookAppointment))
-  .get(protect, asyncHandler(getMyAppointments));
+// Protect all routes
+router.use(protect);
 
-router.post('/emergency', protect, asyncHandler(createEmergencyBooking));
+// List and create appointments
+router
+  .route('/')
+  .post(asyncHandler(bookAppointment))
+  .get(asyncHandler(getMyAppointments));
 
-router.route('/:id')
-  .put(protect, validate(updateAppointmentSchema), asyncHandler(updateAppointment));
+// Get, update, delete single appointment
+router
+  .route('/:id')
+  .get(asyncHandler(getAppointmentById))
+  .patch(asyncHandler(updateAppointmentStatus))
+  .delete(asyncHandler(deleteAppointment));
 
 export default router;

@@ -1,6 +1,7 @@
 import type { Metadata } from 'next';
 import { Toaster } from 'react-hot-toast';
 import Navbar from '@/components/shared/Navbar';
+import AuthHydrator from '@/components/auth/AuthHydrator';
 import './globals.css';
 
 export const metadata: Metadata = {
@@ -19,6 +20,7 @@ export default function RootLayout({
   return (
     <html lang="en" suppressHydrationWarning>
       <body className="bg-white dark:bg-gray-900 text-gray-900 dark:text-white">
+        <AuthHydrator />
         <Navbar />
         {children}
         <Toaster position="top-right" />

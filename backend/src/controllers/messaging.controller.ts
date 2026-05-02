@@ -22,7 +22,7 @@ export const sendMessage = async (req: AuthRequest, res: Response) => {
   const conversation = await messagingService.appendMessage({
     conversationId: req.params.id,
     senderId: req.user._id.toString(),
-    senderRole: req.user.role,
+    senderRole: req.user.role === 'admin' ? 'system' : req.user.role,
     text: req.body.text,
     attachments: req.body.attachments,
   });

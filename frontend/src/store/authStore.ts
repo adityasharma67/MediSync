@@ -1,6 +1,18 @@
 import { create } from 'zustand';
-import { IUser, UserRole } from '@/types';
 import { apiClient } from '@/lib/api';
+
+export type UserRole = 'patient' | 'doctor' | 'admin';
+
+export interface User {
+  _id: string;
+  name: string;
+  email: string;
+  role: UserRole;
+  avatar?: string;
+  specialization?: string;
+  createdAt?: string;
+  updatedAt?: string;
+}
 
 const getStoredToken = (key: 'accessToken' | 'refreshToken') => {
   if (typeof window === 'undefined') {
@@ -11,28 +23,36 @@ const getStoredToken = (key: 'accessToken' | 'refreshToken') => {
 };
 
 interface AuthState {
-  user: IUser | null;
+  user: User | null;
   accessToken: string | null;
   refreshToken: string | null;
   isLoading: boolean;
   error: string | null;
-
-  // Actions
-  setUser: (user: IUser | null) => void;
+  setUser: (user: User | null) => void;
   setTokens: (accessToken: string, refreshToken: string) => void;
   setLoading: (loading: boolean) => void;
   setError: (error: string | null) => void;
-  
-  // Auth methods
+  clearAuth: () => void;
+  hydrateAuth: () => void;
   login: (email: string, password: string) => Promise<void>;
   signup: (name: string, email: string, password: string, role: UserRole) => Promise<void>;
-  logout: () => void;
-  
-  // Token methods
+  logout: () => Promise<void>;
   isAuthenticated: () => boolean;
-  hasRole: (role: UserRole) => boolean;
-  refreshAccessToken: () => Promise<void>;
+  isDoctor: () => boolean;
+  isPatient: () => boolean;
 }
+
+const getStoredUser = (): User | null => {
+  if (typeof window === 'undefined') return null;
+  const raw = localStorage.getItem('user');
+  if (!raw) return null;
+
+  try {
+    return JSON.parse(raw) as User;
+  } catch {
+    return null;
+  }
+};
 
 const useAuthStore = create<AuthState>((set, get) => ({
   user: null,
@@ -41,100 +61,103 @@ const useAuthStore = create<AuthState>((set, get) => ({
   isLoading: false,
   error: null,
 
-  setUser: (user) => set({ user }),
-  
+  hydrateAuth: () => {
+    if (typeof window === 'undefined') return;
+
+    const user = getStoredUser();
+    const accessToken = localStorage.getItem('accessToken');
+    const refreshToken = localStorage.getItem('refreshToken');
+
+    set({
+      user,
+      accessToken,
+      refreshToken,
+    });
+  },
+
+  setUser: (user) => {
+    set({ user });
+    if (typeof window !== 'undefined') {
+      if (user) {
+        localStorage.setItem('user', JSON.stringify(user));
+      } else {
+        localStorage.removeItem('user');
+      }
+    }
+  },
+
   setTokens: (accessToken, refreshToken) => {
     set({ accessToken, refreshToken });
-    apiClient.setTokens(accessToken, refreshToken);
+    if (typeof window !== 'undefined') {
+      localStorage.setItem('accessToken', accessToken);
+      localStorage.setItem('refreshToken', refreshToken);
+    }
   },
 
   setLoading: (loading) => set({ isLoading: loading }),
   setError: (error) => set({ error }),
 
-  login: async (email: string, password: string) => {
-    try {
-      set({ isLoading: true, error: null });
-      const response = await apiClient.login(email, password);
-      const { accessToken, refreshToken, _id, name, email: userEmail, role, avatar } = response.data;
-      
-      get().setTokens(accessToken, refreshToken);
-      set({
-        user: {
-          _id,
-          name,
-          email: userEmail,
-          role,
-          avatar,
-          createdAt: new Date().toISOString(),
-          updatedAt: new Date().toISOString(),
-        },
-      });
-    } catch (error: any) {
-      const errorMessage = error.response?.data?.message || 'Login failed';
-      set({ error: errorMessage });
-      throw error;
-    } finally {
-      set({ isLoading: false });
-    }
-  },
-
-  signup: async (name: string, email: string, password: string, role: UserRole) => {
-    try {
-      set({ isLoading: true, error: null });
-      const response = await apiClient.signup(name, email, password, role);
-      const { accessToken, refreshToken, _id, email: userEmail } = response.data;
-      
-      get().setTokens(accessToken, refreshToken);
-      set({
-        user: {
-          _id,
-          name,
-          email: userEmail,
-          role,
-          createdAt: new Date().toISOString(),
-          updatedAt: new Date().toISOString(),
-        },
-      });
-    } catch (error: any) {
-      const errorMessage = error.response?.data?.message || 'Signup failed';
-      set({ error: errorMessage });
-      throw error;
-    } finally {
-      set({ isLoading: false });
-    }
-  },
-
-  logout: () => {
+  clearAuth: () => {
     set({ user: null, accessToken: null, refreshToken: null, error: null });
-    apiClient.clearTokens();
+    if (typeof window !== 'undefined') {
+      localStorage.removeItem('user');
+      localStorage.removeItem('accessToken');
+      localStorage.removeItem('refreshToken');
+    }
+  },
+
+  login: async (email, password) => {
+    set({ isLoading: true, error: null });
+    try {
+      const response = await apiClient.login(email, password);
+      set({
+        user: {
+          _id: response._id,
+          name: response.name,
+          email: response.email,
+          role: response.role,
+          avatar: response.avatar,
+        },
+        accessToken: response.accessToken,
+        refreshToken: response.refreshToken,
+      });
+    } finally {
+      set({ isLoading: false });
+    }
+  },
+
+  signup: async (name, email, password, role) => {
+    set({ isLoading: true, error: null });
+    try {
+      const response = await apiClient.signup(name, email, password, role);
+      set({
+        user: {
+          _id: response._id,
+          name: response.name,
+          email: response.email,
+          role: response.role,
+          avatar: response.avatar,
+        },
+        accessToken: response.accessToken,
+        refreshToken: response.refreshToken,
+      });
+    } finally {
+      set({ isLoading: false });
+    }
+  },
+
+  logout: async () => {
+    await apiClient.logout().catch(() => undefined);
+    get().clearAuth();
   },
 
   isAuthenticated: () => {
-    const { accessToken } = get();
-    return !!accessToken;
+    const { accessToken, user } = get();
+    return Boolean(accessToken && user);
   },
 
-  hasRole: (role: UserRole) => {
-    const { user } = get();
-    return user?.role === role;
-  },
-
-  refreshAccessToken: async () => {
-    try {
-      const { refreshToken } = get();
-      if (!refreshToken) throw new Error('No refresh token available');
-      
-      const response = await apiClient.client.post<{ accessToken: string }>('/api/auth/refresh', {
-        refreshToken,
-      });
-      
-      set({ accessToken: response.data.accessToken });
-      localStorage.setItem('accessToken', response.data.accessToken);
-    } catch (error) {
-      get().logout();
-      throw error;
-    }
-  },
+  isDoctor: () => get().user?.role === 'doctor',
+  isPatient: () => get().user?.role === 'patient',
 }));
 
 export default useAuthStore;

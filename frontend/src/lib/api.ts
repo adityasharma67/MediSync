@@ -1,318 +1,237 @@
 import axios, { AxiosError, AxiosInstance } from 'axios';
-import {
-  AnalyticsDashboard,
-  AuthResponse,
-  Conversation,
-  CreateAppointmentPayload,
-  CreatePrescriptionPayload,
-  DoctorRecommendation,
-  ForgotPasswordPayload,
-  IAppointment,
-  INotification,
-  IPrescription,
-  IUser,
-  MedicalReport,
-  QueueEntryStatus,
-  RefreshResponse,
-  ResetPasswordPayload,
-  SecuritySession,
-  TimelineItem,
-} from '@/types';
-import useAuthStore from '@/store/authStore';
 
-const API_BASE_URL = process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:5000';
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000/api';
+
+export interface APIError {
+  error?: string;
+  message?: string;
+  statusCode?: number;
+}
+
+type WrappedResponse<T> = { data: T } & (T extends object ? T : Record<string, never>);
+
+const wrap = <T,>(data: T): WrappedResponse<T> => {
+  if (Array.isArray(data) || data === null || typeof data !== 'object') {
+    return { data } as WrappedResponse<T>;
+  }
+
+  return { data, ...(data as Record<string, unknown>) } as WrappedResponse<T>;
+};
 
 class APIClient {
-  public client: AxiosInstance;
+  private client: AxiosInstance;
   private accessToken: string | null = null;
   private refreshToken: string | null = null;
-  private isRefreshing = false;
-  private failedQueue: any[] = [];
 
   constructor() {
     this.client = axios.create({
       baseURL: API_BASE_URL,
-      headers: {
-        'Content-Type': 'application/json',
-      },
+      headers: { 'Content-Type': 'application/json' },
     });
 
     if (typeof window !== 'undefined') {
       this.accessToken = localStorage.getItem('accessToken');
       this.refreshToken = localStorage.getItem('refreshToken');
-
-      if (!localStorage.getItem('deviceId')) {
-        localStorage.setItem('deviceId', crypto.randomUUID());
-      }
     }
 
     this.client.interceptors.request.use((config) => {
       if (this.accessToken) {
+        config.headers = config.headers || {};
         config.headers.Authorization = `Bearer ${this.accessToken}`;
       }
       return config;
     });
-
-    this.client.interceptors.response.use(
-      (response) => response,
-      async (error: AxiosError) => {
-        const originalRequest: any = error.config;
-
-        if (error.response?.status === 401 && !originalRequest._retry && this.refreshToken) {
-          originalRequest._retry = true;
-
-          if (this.isRefreshing) {
-            return new Promise((resolve, reject) => {
-              this.failedQueue.push({ resolve, reject });
-            })
-              .then((token) => {
-                originalRequest.headers.Authorization = `Bearer ${token}`;
-                return this.client(originalRequest);
-              })
-              .catch((err) => Promise.reject(err));
-          }
-
-          this.isRefreshing = true;
-
-          try {
-            const response = await this.client.post<RefreshResponse>('/api/auth/refresh', {
-              refreshToken: this.refreshToken,
-            });
-
-            this.accessToken = response.data.accessToken;
-            localStorage.setItem('accessToken', this.accessToken);
-
-            originalRequest.headers.Authorization = `Bearer ${this.accessToken}`;
-            this.processQueue(null, this.accessToken);
-
-            return this.client(originalRequest);
-          } catch (err) {
-            this.processQueue(err, null);
-            this.clearTokens();
-            useAuthStore.getState().logout();
-            window.location.href = '/login';
-            return Promise.reject(err);
-          } finally {
-            this.isRefreshing = false;
-          }
-        }
-
-        return Promise.reject(error);
-      }
-    );
   }
 
-  private getDeviceId() {
-    if (typeof window === 'undefined') {
-      return 'server-device';
-    }
-
-    return localStorage.getItem('deviceId') || 'browser-device';
-  }
-
-  private processQueue(error: any, token: string | null) {
-    this.failedQueue.forEach(({ resolve, reject }) => {
-      if (error) {
-        reject(error);
-      } else {
-        resolve(token);
-      }
-    });
-    this.failedQueue = [];
-  }
-
-  setTokens(accessToken: string, refreshToken: string) {
+  private setTokens(accessToken: string, refreshToken: string) {
     this.accessToken = accessToken;
     this.refreshToken = refreshToken;
-    localStorage.setItem('accessToken', accessToken);
-    localStorage.setItem('refreshToken', refreshToken);
+
+    if (typeof window !== 'undefined') {
+      localStorage.setItem('accessToken', accessToken);
+      localStorage.setItem('refreshToken', refreshToken);
+    }
   }
 
   clearTokens() {
     this.accessToken = null;
     this.refreshToken = null;
-    localStorage.removeItem('accessToken');
-    localStorage.removeItem('refreshToken');
+
+    if (typeof window !== 'undefined') {
+      localStorage.removeItem('accessToken');
+      localStorage.removeItem('refreshToken');
+      localStorage.removeItem('user');
+    }
   }
 
-  signup(name: string, email: string, password: string, role: string = 'patient') {
-    return this.client.post<AuthResponse>('/api/auth/signup', {
-      name,
-      email,
-      password,
-      role,
-      deviceId: this.getDeviceId(),
-    });
+  private handleError(error: AxiosError<APIError>) {
+    const message = error.response?.data?.error || error.response?.data?.message || error.message || 'An error occurred';
+    throw new Error(message);
   }
 
-  login(email: string, password: string, twoFactorCode?: string) {
-    return this.client.post<AuthResponse>('/api/auth/login', {
-      email,
-      password,
-      twoFactorCode,
-      deviceId: this.getDeviceId(),
-    });
+  async login(email: string, password: string) {
+    try {
+      const { data } = await this.client.post('/auth/login', { email, password });
+      this.setTokens(data.accessToken, data.refreshToken);
+      return wrap(data);
+    } catch (error) {
+      throw this.handleError(error as AxiosError<APIError>);
+    }
   }
 
-  googleAuth(email: string, name: string, googleId: string, avatar?: string) {
-    return this.client.post<AuthResponse>('/api/auth/google', {
-      email,
-      name,
-      googleId,
-      avatar,
-      deviceId: this.getDeviceId(),
-    });
+  async signup(name: string, email: string, password: string, role: 'patient' | 'doctor' | 'admin') {
+    try {
+      const normalizedRole = role === 'doctor' ? 'doctor' : 'patient';
+      const { data } = await this.client.post('/auth/signup', { name, email, password, role: normalizedRole });
+      this.setTokens(data.accessToken, data.refreshToken);
+      return wrap(data);
+    } catch (error) {
+      throw this.handleError(error as AxiosError<APIError>);
+    }
   }
 
-  forgotPassword(payload: ForgotPasswordPayload) {
-    return this.client.post('/api/auth/forgot-password', payload);
-  }
-
-  resetPassword(payload: ResetPasswordPayload) {
-    return this.client.post('/api/auth/reset-password', payload);
-  }
-
-  logout() {
-    return this.client.post('/api/auth/logout').finally(() => {
+  async logout() {
+    try {
+      await this.client.post('/auth/logout');
+    } finally {
       this.clearTokens();
-    });
+    }
   }
 
-  getMe() {
-    return this.client.get<IUser>('/api/users/profile');
+  async refreshAccessToken() {
+    const { data } = await this.client.post('/auth/refresh', { refreshToken: this.refreshToken });
+    this.accessToken = data.accessToken;
+    if (typeof window !== 'undefined') {
+      localStorage.setItem('accessToken', data.accessToken);
+    }
+    return wrap(data);
   }
 
-  updateProfile(data: Partial<IUser>) {
-    return this.client.put<IUser>('/api/users/profile', data);
+  async getCurrentUser() {
+    const { data } = await this.client.get('/users/me');
+    return wrap(data);
   }
 
-  getDoctors() {
-    return this.client.get<IUser[]>('/api/users/doctors');
+  async getMe() {
+    return this.getCurrentUser();
   }
 
-  recommendDoctors(symptoms: string[]) {
-    return this.client.get<DoctorRecommendation[]>('/api/users/doctors/recommendations', {
-      params: { symptoms: symptoms.join(',') },
-    });
+  async updateCurrentUser(payload: unknown) {
+    const { data } = await this.client.put('/users/me', payload);
+    return wrap(data);
   }
 
-  getNearbyDoctors(lat: number, lng: number) {
-    return this.client.get<IUser[]>('/api/users/doctors/nearby', { params: { lat, lng } });
+  async getDoctors() {
+    const { data } = await this.client.get('/users/doctors');
+    return wrap(data);
   }
 
-  getDoctorById(id: string) {
-    return this.client.get<IUser>(`/api/users/${id}`);
+  async getDoctorProfile(doctorId: string) {
+    const { data } = await this.client.get(`/users/doctors/${doctorId}`);
+    return wrap(data);
   }
 
-  bookAppointment(payload: CreateAppointmentPayload) {
-    return this.client.post<IAppointment | { joinedWaitlist: boolean; queue: QueueEntryStatus; message: string }>(
-      '/api/appointments',
-      payload
-    );
+  async getNearbyDoctors(lat: number, lng: number) {
+    const { data } = await this.client.get('/users/doctors/nearby', { params: { lat, lng } });
+    return wrap(data);
   }
 
-  bookEmergencyAppointment(payload: { symptoms: string[]; date?: string; time?: string }) {
-    return this.client.post<{ message: string; appointment: IAppointment }>('/api/appointments/emergency', payload);
+  async recommendDoctors(symptoms: string[] | string) {
+    const value = Array.isArray(symptoms) ? symptoms.join(',') : symptoms;
+    const { data } = await this.client.get('/users/doctors/recommendations', { params: { symptoms: value } });
+    return wrap(data);
   }
 
-  getAppointments() {
-    return this.client.get<IAppointment[]>('/api/appointments');
+  async getAppointments() {
+    const { data } = await this.client.get('/appointments');
+    return wrap(data);
   }
 
-  getAppointmentById(id: string) {
-    return this.client.get<IAppointment>(`/api/appointments/${id}`);
+  async getAppointment(appointmentId: string) {
+    const { data } = await this.client.get(`/appointments/${appointmentId}`);
+    return wrap(data);
   }
 
-  updateAppointment(id: string, data: Partial<IAppointment>) {
-    return this.client.put<IAppointment>(`/api/appointments/${id}`, data);
+  async bookAppointment(payload: unknown) {
+    const { data } = await this.client.post('/appointments', payload);
+    return wrap(data);
   }
 
-  cancelAppointment(id: string) {
-    return this.client.put<IAppointment>(`/api/appointments/${id}`, { status: 'cancelled' });
+  async updateAppointmentStatus(appointmentId: string, payload: unknown) {
+    const { data } = await this.client.patch(`/appointments/${appointmentId}`, payload);
+    return wrap(data);
   }
 
-  joinWaitlist(payload: { doctorId: string; date: string; time: string; symptoms?: string[]; priority?: number }) {
-    return this.client.post<QueueEntryStatus>('/api/queue', payload);
+  async cancelAppointment(appointmentId: string) {
+    const { data } = await this.client.delete(`/appointments/${appointmentId}`);
+    return wrap(data);
   }
 
-  getQueueStatus(id: string) {
-    return this.client.get<QueueEntryStatus>(`/api/queue/${id}`);
+  async bookEmergencyAppointment(payload: unknown) {
+    const { data } = await this.client.post('/appointments/emergency', payload);
+    return wrap(data);
   }
 
-  createPrescription(payload: CreatePrescriptionPayload) {
-    return this.client.post<IPrescription>('/api/prescriptions', payload);
+  async getConversations() {
+    const { data } = await this.client.get('/messages/conversations');
+    return wrap(data);
   }
 
-  getPrescriptions() {
-    return this.client.get<IPrescription[]>('/api/prescriptions');
+  async sendMessage(conversationId: string, payload: unknown) {
+    const { data } = await this.client.post(`/messages/${conversationId}`, payload);
+    return wrap(data);
   }
 
-  getPrescriptionById(id: string) {
-    return this.client.get<IPrescription>(`/api/prescriptions/${id}`);
+  async getTimeline() {
+    const { data } = await this.client.get('/timeline');
+    return wrap(data);
   }
 
-  downloadPrescriptionPDF(id: string) {
-    return this.client.get(`/api/prescriptions/${id}/pdf`, { responseType: 'blob' });
+  async getReports() {
+    const { data } = await this.client.get('/reports');
+    return wrap(data);
   }
 
-  getTimeline() {
-    return this.client.get<TimelineItem[]>('/api/timeline');
+  async analyzeReport(payload: unknown) {
+    const { data } = await this.client.post('/reports/analyze', payload);
+    return wrap(data);
   }
 
-  analyzeReport(payload: {
-    title: string;
-    fileName: string;
-    mimeType: string;
-    fileData?: string;
-    appointmentId?: string;
-    ocrText?: string;
-  }) {
-    return this.client.post<MedicalReport>('/api/reports', payload);
+  async getAnalytics() {
+    const { data } = await this.client.get('/analytics');
+    return wrap(data);
   }
 
-  getReports() {
-    return this.client.get<MedicalReport[]>('/api/reports');
+  async getPrescriptions() {
+    const { data } = await this.client.get('/prescriptions');
+    return wrap(data);
   }
 
-  getConversations() {
-    return this.client.get<Conversation[]>('/api/messages');
+  async forgotPassword(payload: unknown) {
+    const { data } = await this.client.post('/auth/forgot-password', payload);
+    return wrap(data);
   }
 
-  startConversation(participantIds: string[], appointmentId?: string) {
-    return this.client.post<Conversation>('/api/messages', { participantIds, appointmentId });
+  async resetPassword(payload: unknown) {
+    const { data } = await this.client.post('/auth/reset-password', payload);
+    return wrap(data);
   }
 
-  sendMessage(conversationId: string, payload: { text?: string; attachments?: { name: string; url: string; mimeType: string }[] }) {
-    return this.client.post<Conversation>(`/api/messages/${conversationId}/messages`, payload);
+  async getSessions() {
+    const { data } = await this.client.get('/security/sessions');
+    return wrap(data);
   }
 
-  getAnalytics() {
-    return this.client.get<AnalyticsDashboard>('/api/analytics');
+  async setupTwoFactor() {
+    const { data } = await this.client.post('/security/2fa/setup');
+    return wrap(data);
   }
 
-  setupTwoFactor() {
-    return this.client.post<{ secret: string; otpPreview: string }>('/api/security/2fa/setup');
-  }
-
-  enableTwoFactor(code: string) {
-    return this.client.post<{ enabled: boolean }>('/api/security/2fa/enable', { code });
-  }
-
-  getSessions() {
-    return this.client.get<SecuritySession[]>('/api/security/sessions');
-  }
-
-  getNotifications() {
-    return this.client.get<INotification[]>('/api/notifications');
-  }
-
-  markNotificationAsRead(id: string) {
-    return this.client.put(`/api/notifications/${id}`, { read: true });
-  }
-
-  clearNotifications() {
-    return this.client.delete('/api/notifications');
+  async enableTwoFactor(code: string) {
+    const { data } = await this.client.post('/security/2fa/enable', { code });
+    return wrap(data);
   }
 }
 
 export const apiClient = new APIClient();
+export default apiClient;

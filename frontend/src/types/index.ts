@@ -1,14 +1,15 @@
 export type UserRole = 'patient' | 'doctor' | 'admin';
+export type AppointmentStatus = 'scheduled' | 'pending' | 'confirmed' | 'completed' | 'cancelled';
 
-export interface IUser {
+export interface User {
   _id: string;
   name: string;
   email: string;
   role: UserRole;
   avatar?: string;
   specialization?: string;
-  availableSlots?: { date: string; time: string }[];
-  symptomsProfile?: string[];
+  createdAt?: string;
+  updatedAt?: string;
   doctorProfile?: {
     bio?: string;
     hospital?: string;
@@ -19,14 +20,14 @@ export interface IUser {
     reviewCount?: number;
     emergencyAvailable?: boolean;
     location?: {
-      lat: number;
-      lng: number;
       address?: string;
+      lat?: number;
+      lng?: number;
     };
   };
-  createdAt: string;
-  updatedAt: string;
 }
+
+export type IUser = User;
 
 export interface AuthResponse {
   _id: string;
@@ -44,30 +45,56 @@ export interface RefreshResponse {
   expiresIn: string;
 }
 
-export type AppointmentStatus = 'scheduled' | 'completed' | 'cancelled' | 'emergency';
-
-export interface IAppointment {
+export interface Appointment {
   _id: string;
-  patient: Partial<IUser>;
-  doctor: Partial<IUser>;
-  date: string;
-  time: string;
-  status: AppointmentStatus;
+  patient: User;
+  doctor: User;
+  scheduledAt: string;
+  date?: string;
+  time?: string;
   meetLink?: string;
-  symptoms?: string[];
-  urgencyLevel?: 'normal' | 'priority' | 'emergency';
-  source?: 'standard' | 'waitlist-auto' | 'emergency';
-  queueAssignedAt?: string;
+  source?: string;
+  status: AppointmentStatus;
+  notes?: string;
+  callRoomId?: string;
   createdAt: string;
   updatedAt: string;
 }
 
+export type IAppointment = Appointment;
+
+export interface ChatMessage {
+  senderId: string;
+  senderName: string;
+  message: string;
+  timestamp: string;
+}
+
+export interface RoomUser {
+  userId: string;
+  userName: string;
+  role: UserRole;
+}
+
+export interface WebRTCOffer {
+  from: string;
+  offer: RTCSessionDescriptionInit;
+}
+
+export interface WebRTCAnswer {
+  from: string;
+  answer: RTCSessionDescriptionInit;
+}
+
+export interface ICECandidateMessage {
+  from: string;
+  candidate: RTCIceCandidateInit;
+}
+
 export interface CreateAppointmentPayload {
   doctorId: string;
-  date: string;
-  time: string;
-  symptoms?: string[];
-  joinWaitlist?: boolean;
+  scheduledAt: string;
+  notes?: string;
 }
 
 export interface QueueEntryStatus {
@@ -84,20 +111,9 @@ export interface QueueEntryStatus {
 }
 
 export interface DoctorRecommendation {
-  doctor: IUser;
+  doctor: User;
   score: number;
   reasons: string[];
-}
-
-export interface IPrescription {
-  _id: string;
-  appointment: string;
-  doctor: Partial<IUser>;
-  patient: Partial<IUser>;
-  medications: PrescriptionMedication[];
-  notes?: string;
-  createdAt: string;
-  updatedAt: string;
 }
 
 export interface PrescriptionMedication {
@@ -106,6 +122,17 @@ export interface PrescriptionMedication {
   frequency: string;
   duration: string;
   instructions?: string;
+}
+
+export interface IPrescription {
+  _id: string;
+  appointment: string;
+  doctor: Partial<User>;
+  patient: Partial<User>;
+  medications: PrescriptionMedication[];
+  notes?: string;
+  createdAt: string;
+  updatedAt: string;
 }
 
 export interface CreatePrescriptionPayload {
@@ -122,14 +149,6 @@ export interface INotification {
   type: 'appointment' | 'prescription' | 'message' | 'system';
   read: boolean;
   createdAt: string;
-}
-
-export interface ChatMessage {
-  id: string;
-  sender: 'user' | 'assistant';
-  content: string;
-  timestamp: number;
-  isStreaming?: boolean;
 }
 
 export interface DoctorAvailability {
@@ -170,13 +189,12 @@ export interface TimelineItem {
 
 export interface Conversation {
   _id: string;
-  participants: IUser[];
+  participants: User[];
   lastMessageAt?: string;
   messages: {
-    sender: string;
-    senderRole: 'patient' | 'doctor' | 'system';
-    text?: string;
-    attachments?: { name: string; url: string; mimeType: string }[];
+    senderId: string;
+    senderRole?: UserRole | 'system';
+    text: string;
     createdAt: string;
   }[];
 }
@@ -188,13 +206,16 @@ export interface AnalyticsDashboard {
     emergencyAppointments: number;
     conversations: number;
   };
-  peakBookingTimes: { hour: number; count: number }[];
-  doctorPerformance: IUser[];
+  peakBookingTimes: {
+    hour: string;
+    count: number;
+  }[];
+  doctorPerformance: User[];
 }
 
 export interface SecuritySession {
   deviceId: string;
   userAgent?: string;
   lastSeenAt: string;
-  createdAt: string;
+  createdAt?: string;
 }
