@@ -5,7 +5,7 @@ import logger from '../utils/logger';
 
 // Extend Express Request interface to include user
 export interface AuthRequest extends Request {
-  user: {
+  user?: {
     id: string;
     email: string;
     role: 'patient' | 'doctor' | 'admin';
