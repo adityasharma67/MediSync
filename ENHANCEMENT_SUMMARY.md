@@ -150,7 +150,7 @@ New reusable skeleton components:
 - `DEPLOYMENT_GUIDE.md`: Comprehensive deployment instructions
   - Local development setup
   - MongoDB Atlas cloud setup
-  - Vercel frontend deployment
+   - Independent frontend deployment
   - Render/Railway backend deployment
   - Docker deployment options
   - Security checklist

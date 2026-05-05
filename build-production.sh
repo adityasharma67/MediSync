@@ -99,7 +99,7 @@ main() {
   echo "2. Update .env files with production values"
   echo "3. Deploy to your hosting platform:"
   echo "   - Backend: Render.com, Railway, Heroku, AWS, etc."
-  echo "   - Frontend: Vercel, Netlify, AWS Amplify, etc."
+  echo "   - Frontend: Netlify, Cloudflare Pages, Render, AWS Amplify, etc."
   echo "   - Or use Docker & docker-compose for self-hosted"
 }
 

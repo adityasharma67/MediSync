@@ -9,14 +9,14 @@ import { AppError } from '../middlewares/error.middleware';
 export const createPrescription = async (req: AuthRequest, res: Response) => {
   const { appointmentId, patientId, diagnosis, medications, notes } = req.body;
 
-  if (req.user.role !== 'doctor') {
+  if (req.user!.role !== 'doctor') {
     throw new AppError(403, 'Only doctors can create prescriptions');
   }
 
   const prescription = await Prescription.create({
     appointment: appointmentId,
     patient: patientId,
-    doctor: req.user._id,
+    doctor: req.user!._id,
     diagnosis,
     medications,
     notes,
@@ -31,10 +31,10 @@ export const createPrescription = async (req: AuthRequest, res: Response) => {
 export const getPrescriptions = async (req: AuthRequest, res: Response) => {
   let query = {};
   
-  if (req.user.role === 'patient') {
-    query = { patient: req.user._id };
-  } else if (req.user.role === 'doctor') {
-    query = { doctor: req.user._id };
+  if (req.user!.role === 'patient') {
+    query = { patient: req.user!._id };
+  } else if (req.user!.role === 'doctor') {
+    query = { doctor: req.user!._id };
   }
 
   const prescriptions = await Prescription.find(query)
@@ -61,9 +61,9 @@ export const getPrescriptionById = async (req: AuthRequest, res: Response) => {
 
   // Authorize
   if (
-    prescription.patient._id.toString() !== req.user._id.toString() &&
-    prescription.doctor._id.toString() !== req.user._id.toString() &&
-    req.user.role !== 'admin'
+    prescription.patient._id.toString() !== req.user!._id.toString() &&
+    prescription.doctor._id.toString() !== req.user!._id.toString() &&
+    req.user!.role !== 'admin'
   ) {
     throw new AppError(403, 'Not authorized to view this prescription');
   }

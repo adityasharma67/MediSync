@@ -157,10 +157,10 @@ import io from 'socket.io-client';
 - Use PostgreSQL or MongoDB Atlas
 - Redis for session only
 
-### Frontend (Vercel)
+### Frontend (Independent Host)
 - Build: `npm run build`
 - Start: `npm start`
-- Env vars: API_URL, NEXT_PUBLIC_SOCKET_URL
+- Env vars: NEXT_PUBLIC_BACKEND_URL, NEXT_PUBLIC_SOCKET_URL
 
 ---
 

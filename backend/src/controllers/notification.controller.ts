@@ -10,7 +10,7 @@ const router = Router();
 // @access  Private
 export const getNotifications = async (req: AuthRequest, res: Response) => {
   try {
-    const notifications = await Notification.find({ user: req.user._id })
+    const notifications = await Notification.find({ user: req.user!._id })
       .sort({ createdAt: -1 })
       .limit(50);
     
@@ -46,7 +46,7 @@ export const markAsRead = async (req: AuthRequest, res: Response) => {
 // @access  Private
 export const clearNotifications = async (req: AuthRequest, res: Response) => {
   try {
-    await Notification.deleteMany({ user: req.user._id });
+    await Notification.deleteMany({ user: req.user!._id });
     res.json({ message: 'Notifications cleared' });
   } catch (error: any) {
     throw new AppError(500, error.message);

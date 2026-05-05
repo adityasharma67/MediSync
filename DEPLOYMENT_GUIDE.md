@@ -5,8 +5,8 @@
 2. [Production Deployment](#production-deployment)
 3. [Environment Variables](#environment-variables)
 4. [Docker Deployment](#docker-deployment)
-5. [Vercel Deployment (Frontend)](#vercel-deployment-frontend)
-6. [Render Deployment (Full Stack)](#render-deployment-full-stack)
+5. [Frontend Deployment (Independent)](#frontend-deployment-independent)
+6. [Render Deployment (Backend)](#render-deployment-backend)
 7. [Troubleshooting](#troubleshooting)
 
 ---
@@ -144,7 +144,7 @@ This will start:
 
 ---
 
-## Vercel Deployment (Frontend)
+## Frontend Deployment (Independent)
 
 ### Step 1: Push to GitHub
 ```bash
@@ -153,16 +153,20 @@ git commit -m "Production ready"
 git push origin main
 ```
 
-### Step 2: Connect to Vercel
-1. Go to [vercel.com](https://vercel.com)
-2. Click "New Project"
-3. Import your GitHub repository
-4. Select the `frontend` root directory
+### Step 2: Deploy Frontend App
+1. Choose your frontend host (Render static/web service, Netlify, Cloudflare Pages, etc.)
+2. Import your GitHub repository
+3. Select the `frontend` root directory
+4. Set build/start commands:
+   ```
+   npm install && npm run build
+   npm start
+   ```
 5. Add environment variables:
    ```
-   NEXT_PUBLIC_BACKEND_URL=https://your-backend-api.com
+   NEXT_PUBLIC_BACKEND_URL=https://your-backend-api.onrender.com
    ```
-6. Deploy!
+6. Deploy.
 
 ### Step 3: Custom Domain (Optional)
 - Go to Project Settings → Domains
@@ -170,7 +174,7 @@ git push origin main
 
 ---
 
-## Render Deployment (Full Stack)
+## Render Deployment (Backend)
 
 This repo now includes a Render Blueprint at `render.yaml` in the project root.
 
@@ -181,7 +185,6 @@ This repo now includes a Render Blueprint at `render.yaml` in the project root.
 3. Select your MediSync repository.
 4. Render will detect `render.yaml` and create:
    - `medisync-backend` (Node web service)
-   - `medisync-frontend` (Next.js web service)
    - `medisync-redis` (managed Redis)
 5. Fill required env vars (marked as `sync: false`) before first deploy:
    - Backend required:
@@ -191,9 +194,6 @@ This repo now includes a Render Blueprint at `render.yaml` in the project root.
      - `OPENAI_API_KEY` (if AI endpoints are used)
      - `FRONTEND_URL` (your Render frontend URL)
      - `CORS_ORIGIN` (same value as frontend URL)
-   - Frontend required:
-     - `NEXT_PUBLIC_BACKEND_URL` (your Render backend URL, e.g. `https://medisync-backend.onrender.com`)
-     - `OPENAI_API_KEY` (only if frontend server routes use it)
 6. Deploy and wait for healthy checks.
 
 ### Option B: Manual Service Creation on Render
@@ -222,18 +222,13 @@ This repo now includes a Render Blueprint at `render.yaml` in the project root.
    - `FRONTEND_URL=<https://your-frontend.onrender.com>`
    - `CORS_ORIGIN=<https://your-frontend.onrender.com>`
 
-#### Frontend service
-1. Create a second **Web Service** from this repo.
-2. Use these settings:
-   - Root Directory: `frontend`
-   - Environment: `Node`
-   - Build Command: `npm ci && npm run build`
-   - Start Command: `npm start`
-3. Add frontend environment variables:
-   - `NODE_ENV=production`
+#### Frontend app (separate deployment)
+1. Deploy `frontend` on your preferred frontend host.
+2. Set frontend env var:
    - `NEXT_PUBLIC_BACKEND_URL=<https://your-backend.onrender.com>`
-   - `NEXT_PUBLIC_LOG_LEVEL=info`
-   - `OPENAI_API_KEY=<optional>`
+3. Build/start commands:
+   - `npm install && npm run build`
+   - `npm start`
 
 #### Redis service
 1. Create a new **Redis** service in Render.
@@ -355,7 +350,7 @@ As your app grows:
    - Use job queues for heavy operations
 
 3. **Frontend**
-   - Use CDN (Vercel includes this)
+   - Use a CDN from your hosting provider
    - Implement lazy loading
    - Optimize bundle size
 
@@ -413,7 +408,6 @@ npm run build
 - [Express.js Docs](https://expressjs.com/)
 - [MongoDB Docs](https://docs.mongodb.com/)
 - [Render Docs](https://render.com/docs)
-- [Vercel Docs](https://vercel.com/docs)
 
 ---
 

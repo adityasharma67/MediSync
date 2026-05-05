@@ -4,12 +4,12 @@ import queueService from '../services/queue.service';
 import { AppError } from '../middlewares/error.middleware';
 
 export const joinWaitlist = async (req: AuthRequest, res: Response) => {
-  if (req.user.role !== 'patient') {
+  if (req.user!.role !== 'patient') {
     throw new AppError(403, 'Only patients can join the waiting queue');
   }
 
   const entry = await queueService.joinQueue({
-    patientId: req.user._id.toString(),
+    patientId: req.user!._id.toString(),
     doctorId: req.body.doctorId,
     date: req.body.date,
     time: req.body.time,

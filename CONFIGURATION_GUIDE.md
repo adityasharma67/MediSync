@@ -188,10 +188,9 @@ npm run dev
 
 ## Production Deployment
 
-### Vercel (Frontend)
+### Frontend Host (Independent)
 ```bash
-# Set environment variables in Vercel dashboard:
-# Settings → Environment Variables
+# Set environment variables in your hosting dashboard:
 
 NEXT_PUBLIC_BACKEND_URL=https://your-backend-api.com
 NEXT_PUBLIC_LOG_LEVEL=error
@@ -289,7 +288,7 @@ MONGODB_URI=mongodb://localhost:27017/medisync
 
 - [Environment Variables Best Practices](https://12factor.net/config)
 - [MongoDB Atlas Setup Guide](https://docs.atlas.mongodb.com/)
-- [Vercel Environment Variables](https://vercel.com/docs/concepts/projects/environment-variables)
+- [Next.js Environment Variables](https://nextjs.org/docs/pages/building-your-application/configuring/environment-variables)
 - [Render Environment Variables](https://render.com/docs/environment-variables)
 
 ---

@@ -421,7 +421,7 @@ REFRESH_EXPIRES_IN=7d
 # Server
 PORT=5000
 NODE_ENV=production
-CORS_ORIGIN=https://medisync-frontend.vercel.app
+CORS_ORIGIN=https://medisync-frontend.example.com
 
 # Redis (optional, for session management)
 REDIS_URL=redis://localhost:6379
