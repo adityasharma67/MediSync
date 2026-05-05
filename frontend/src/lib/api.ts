@@ -1,7 +1,8 @@
 import axios, { AxiosError, AxiosInstance } from 'axios';
 
-const BACKEND_URL = process.env.NEXT_PUBLIC_BACKEND_URL || process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000';
-const API_BASE_URL = BACKEND_URL.endsWith('/api') ? BACKEND_URL : `${BACKEND_URL}/api`;
+// Route browser requests through the same-origin Next.js `/api` proxy.
+// The proxy target is configured in `next.config.mjs` from NEXT_PUBLIC_API_URL.
+const API_BASE_URL = '/api';
 
 export interface APIError {
   error?: string;

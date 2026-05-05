@@ -42,7 +42,33 @@ const allowedOrigins = (process.env.CORS_ORIGIN || process.env.FRONTEND_URL || '
 
 app.use(
   cors({
-    origin: allowedOrigins.length > 0 ? allowedOrigins : true,
+    origin: (origin, callback) => {
+        // Allow non-browser requests (e.g., curl, Postman)
+        if (!origin) return callback(null, true);
+
+        // In development/test, allow all origins to avoid CORS issues with preview URLs
+        if (process.env.NODE_ENV !== 'production') return callback(null, true);
+
+        // If explicit wildcard '*' is configured, allow all origins
+        if (allowedOrigins.includes('*')) return callback(null, true);
+
+        // Support simple wildcard patterns like '*.github.dev' or 'https://*.vercel.app'
+        const isAllowed = allowedOrigins.some((allowed) => {
+          if (allowed.includes('*')) {
+            const pattern = `^${allowed.replace(/\*/g, '.*')}$`;
+            return new RegExp(pattern).test(origin);
+          }
+          return allowed === origin;
+        });
+
+        // Debug log for origin checks
+        if (!isAllowed) {
+          logger.warn(`CORS origin denied: ${origin} (allowed: ${allowedOrigins.join(',')})`);
+        }
+
+        if (isAllowed) return callback(null, true);
+        return callback(new Error('Not allowed by CORS'));
+    },
     credentials: true,
     methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
     allowedHeaders: ['Content-Type', 'Authorization'],

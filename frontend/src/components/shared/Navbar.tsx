@@ -17,14 +17,20 @@ export default function Navbar() {
   const { unreadCount } = useNotificationStore();
 
   useEffect(() => {
-    // Check system preference
-    const prefersDark = window.matchMedia("(prefers-color-scheme: dark)").matches;
-    const savedDark = localStorage.getItem("theme") === "dark";
-    const shouldBeDark = savedDark || (prefersDark && !localStorage.getItem("theme"));
-    
-    if (shouldBeDark) {
-      setIsDark(true);
-      document.documentElement.classList.add("dark");
+    // Prefer explicit saved preference; default to light theme if none
+    try {
+      const saved = localStorage.getItem("theme");
+      if (saved === "dark") {
+        setIsDark(true);
+        document.documentElement.classList.add("dark");
+      } else {
+        setIsDark(false);
+        document.documentElement.classList.remove("dark");
+      }
+    } catch (e) {
+      // ignore localStorage errors and keep light theme
+      setIsDark(false);
+      document.documentElement.classList.remove("dark");
     }
   }, []);
 
@@ -143,23 +149,27 @@ export default function Navbar() {
 
             {/* Theme Toggle */}
             <motion.button
-              whileHover={{ scale: 1.1 }}
+              whileHover={{ scale: 1.05 }}
               whileTap={{ scale: 0.95 }}
               onClick={() => setIsDark(!isDark)}
-              className="p-2 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-lg transition-colors"
+              aria-label={isDark ? "Switch to light theme" : "Switch to dark theme"}
+              className="flex items-center gap-2 p-2 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-lg transition-colors"
             >
               <motion.div
-                key={isDark ? "moon" : "sun"}
+                key={isDark ? "sun" : "moon"}
                 initial={{ rotate: -90, opacity: 0 }}
                 animate={{ rotate: 0, opacity: 1 }}
                 exit={{ rotate: 90, opacity: 0 }}
               >
                 {isDark ? (
-                  <Sun className="w-5 h-5 text-yellow-500" />
+                  <Sun className="w-5 h-5 text-yellow-400" />
                 ) : (
                   <Moon className="w-5 h-5 text-gray-700" />
                 )}
               </motion.div>
+              <span className="hidden sm:inline text-sm text-gray-700 dark:text-gray-300">
+                {isDark ? "Dark" : "Light"}
+              </span>
             </motion.button>
 
             {/* User Menu */}
