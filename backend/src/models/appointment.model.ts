@@ -6,6 +6,7 @@ export interface IAppointment extends Document {
   scheduledAt: Date;
   status: 'pending' | 'confirmed' | 'completed' | 'cancelled';
   notes?: string;
+  source?: 'standard' | 'emergency';
   callRoomId?: string; // Video call room ID
 }
 
@@ -20,6 +21,11 @@ const appointmentSchema: Schema = new Schema(
       default: 'pending',
     },
     notes: { type: String },
+    source: {
+      type: String,
+      enum: ['standard', 'emergency'],
+      default: 'standard',
+    },
     callRoomId: { type: String }, // Generated when call starts
   },
   { timestamps: true }

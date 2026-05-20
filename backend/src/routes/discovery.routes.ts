@@ -5,6 +5,7 @@ import { findNearbyDoctors, recommendDoctors } from '../controllers/discovery.co
 const router = express.Router();
 
 router.post('/recommendations', asyncHandler(recommendDoctors));
+router.get('/recommendations', asyncHandler(recommendDoctors));
 router.get('/nearby-doctors', asyncHandler(findNearbyDoctors));
 
 export default router;

@@ -1,6 +1,7 @@
 import express from 'express';
 import {
   bookAppointment,
+  bookEmergencyAppointment,
   getMyAppointments,
   getAppointmentById,
   updateAppointmentStatus,
@@ -19,6 +20,8 @@ router
   .route('/')
   .post(asyncHandler(bookAppointment))
   .get(asyncHandler(getMyAppointments));
+
+router.post('/emergency', asyncHandler(bookEmergencyAppointment));
 
 // Get, update, delete single appointment
 router

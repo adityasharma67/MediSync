@@ -11,6 +11,15 @@ import { errorHandler, notFound } from './middlewares/error.middleware';
 import authRoutes from './routes/auth.routes';
 import userRoutes from './routes/user.routes';
 import appointmentRoutes from './routes/appointment.routes';
+import analyticsRoutes from './routes/analytics.routes';
+import discoveryRoutes from './routes/discovery.routes';
+import messagingRoutes from './routes/messaging.routes';
+import notificationRoutes from './routes/notification.routes';
+import prescriptionRoutes from './routes/prescription.routes';
+import queueRoutes from './routes/queue.routes';
+import reportRoutes from './routes/report.routes';
+import securityRoutes from './routes/security.routes';
+import timelineRoutes from './routes/timeline.routes';
 import { apiLimiter } from './middlewares/rateLimiter';
 import { initializeSocketService } from './services/socket.service';
 
@@ -96,6 +105,15 @@ app.get('/api/health', (_req: Request, res: Response) => {
 app.use('/api/auth', authRoutes);
 app.use('/api/users', userRoutes);
 app.use('/api/appointments', appointmentRoutes);
+app.use('/api/analytics', analyticsRoutes);
+app.use('/api/discovery', discoveryRoutes);
+app.use('/api/messages', messagingRoutes);
+app.use('/api/notifications', notificationRoutes);
+app.use('/api/prescriptions', prescriptionRoutes);
+app.use('/api/queue', queueRoutes);
+app.use('/api/reports', reportRoutes);
+app.use('/api/security', securityRoutes);
+app.use('/api/timeline', timelineRoutes);
 
 app.use(notFound);
 app.use(errorHandler);

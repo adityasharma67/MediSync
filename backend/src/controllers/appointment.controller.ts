@@ -7,8 +7,9 @@ import logger from '../utils/logger';
 
 export const bookAppointment = async (req: AuthRequest, res: Response) => {
   const { doctorId, scheduledAt, notes } = req.body;
+  const userId = req.user?.id || req.user?._id;
 
-  if (!req.user?.id || req.user.role !== 'patient') {
+  if (!userId || req.user?.role !== 'patient') {
     throw new AppError(403, 'Only patients can book appointments');
   }
 
@@ -21,10 +22,21 @@ export const bookAppointment = async (req: AuthRequest, res: Response) => {
     throw new AppError(404, 'Doctor not found');
   }
 
-  const appointment = await Appointment.create({
-    patient: req.user.id,
+  const appointmentDate = new Date(scheduledAt);
+  const existingAppointment = await Appointment.findOne({
     doctor: doctorId,
-    scheduledAt: new Date(scheduledAt),
+    scheduledAt: appointmentDate,
+    status: { $in: ['pending', 'confirmed'] },
+  });
+
+  if (existingAppointment) {
+    throw new AppError(409, 'This slot is already booked');
+  }
+
+  const appointment = await Appointment.create({
+    patient: userId,
+    doctor: doctorId,
+    scheduledAt: appointmentDate,
     status: 'pending',
     notes: notes || '',
   });
@@ -33,6 +45,44 @@ export const bookAppointment = async (req: AuthRequest, res: Response) => {
   await appointment.populate('doctor', 'name email avatar specialization');
 
   logger.info(`Appointment created: ${appointment._id}`);
+  res.status(201).json(appointment);
+};
+
+export const bookEmergencyAppointment = async (req: AuthRequest, res: Response) => {
+  const userId = req.user?.id || req.user?._id;
+  const symptoms = Array.isArray(req.body.symptoms)
+    ? req.body.symptoms.join(', ')
+    : req.body.symptoms || req.body.notes || 'Emergency consultation requested';
+
+  if (!userId || req.user?.role !== 'patient') {
+    throw new AppError(403, 'Only patients can request emergency appointments');
+  }
+
+  const doctor = await User.findOne({
+    role: 'doctor',
+    $or: [
+      { 'doctorProfile.emergencyAvailable': true },
+      { availableSlots: { $exists: true, $ne: [] } },
+    ],
+  }).sort({ 'doctorProfile.rating': -1, createdAt: 1 });
+
+  if (!doctor) {
+    throw new AppError(404, 'No emergency doctor is available right now');
+  }
+
+  const appointment = await Appointment.create({
+    patient: userId,
+    doctor: doctor._id,
+    scheduledAt: new Date(Date.now() + 15 * 60 * 1000),
+    status: 'confirmed',
+    source: 'emergency',
+    notes: `Emergency request: ${symptoms}`,
+  });
+
+  await appointment.populate('patient', 'name email avatar');
+  await appointment.populate('doctor', 'name email avatar specialization');
+
+  logger.info(`Emergency appointment created: ${appointment._id}`);
   res.status(201).json(appointment);
 };
 

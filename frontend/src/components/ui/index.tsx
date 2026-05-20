@@ -1,7 +1,10 @@
-import { ReactNode } from 'react';
+"use client";
+
+import { InputHTMLAttributes, ReactNode } from 'react';
 import Link from 'next/link';
 import { motion } from 'framer-motion';
 import clsx from 'clsx';
+import { Loader2 } from 'lucide-react';
 
 interface ButtonProps {
   children: ReactNode;
@@ -26,31 +29,31 @@ export const Button = ({
   href,
   ...props
 }: ButtonProps) => {
-  const baseStyles = 'font-semibold rounded-lg transition-all duration-200 flex items-center justify-center gap-2';
+  const baseStyles = 'inline-flex items-center justify-center gap-2 rounded-lg font-semibold transition disabled:cursor-not-allowed disabled:opacity-60';
 
   const variants = {
-    primary: 'bg-primary-600 hover:bg-primary-700 text-white disabled:bg-gray-400 dark:bg-primary-500 dark:hover:bg-primary-600',
-    secondary: 'bg-gray-200 hover:bg-gray-300 text-gray-900 disabled:bg-gray-400 dark:bg-gray-700 dark:hover:bg-gray-600 dark:text-white',
-    danger: 'bg-red-600 hover:bg-red-700 text-white disabled:bg-gray-400',
-    outline: 'border-2 border-primary-600 text-primary-600 hover:bg-primary-50 dark:border-primary-400 dark:text-primary-400 dark:hover:bg-gray-800',
+    primary: 'btn-solid',
+    secondary: 'bg-[var(--surface-strong)] text-[var(--text)] hover:bg-[var(--surface-muted)]',
+    danger: 'bg-[var(--danger)] text-white hover:brightness-95',
+    outline: 'btn-outline',
   };
 
   const sizes = {
     sm: 'px-3 py-1.5 text-sm',
-    md: 'px-4 py-2 text-base',
-    lg: 'px-6 py-3 text-lg',
+    md: 'px-4 py-2 text-sm',
+    lg: 'px-5 py-3 text-base',
   };
 
   const content = (
     <>
-      {loading && <span className="animate-spin">...</span>}
+      {loading && <Loader2 className="h-4 w-4 animate-spin" />}
       {children}
     </>
   );
 
   if (href) {
     return (
-      <motion.div whileHover={{ scale: disabled ? 1 : 1.02 }} whileTap={{ scale: disabled ? 1 : 0.98 }}>
+      <motion.div whileHover={{ scale: disabled ? 1 : 1.01 }} whileTap={{ scale: disabled ? 1 : 0.99 }}>
         <Link href={href} className={clsx(baseStyles, variants[variant], sizes[size], className)}>
           {content}
         </Link>
@@ -60,8 +63,8 @@ export const Button = ({
 
   return (
     <motion.button
-      whileHover={{ scale: disabled ? 1 : 1.02 }}
-      whileTap={{ scale: disabled ? 1 : 0.98 }}
+      whileHover={{ scale: disabled ? 1 : 1.01 }}
+      whileTap={{ scale: disabled ? 1 : 0.99 }}
       type={type}
       disabled={disabled || loading}
       className={clsx(baseStyles, variants[variant], sizes[size], className)}
@@ -72,7 +75,7 @@ export const Button = ({
   );
 };
 
-interface InputProps extends React.InputHTMLAttributes<HTMLInputElement> {
+interface InputProps extends InputHTMLAttributes<HTMLInputElement> {
   label?: string;
   error?: string;
   icon?: ReactNode;
@@ -81,21 +84,20 @@ interface InputProps extends React.InputHTMLAttributes<HTMLInputElement> {
 export const Input = ({ label, error, icon, className = '', ...props }: InputProps) => {
   return (
     <div className="w-full">
-      {label && <label className="mb-2 block text-sm font-medium text-gray-700 dark:text-gray-300">{label}</label>}
+      {label && <label className="mb-2 block text-sm font-medium text-[var(--text)]">{label}</label>}
       <div className="relative">
-        {icon && <span className="absolute left-3 top-1/2 -translate-y-1/2 transform text-gray-400">{icon}</span>}
+        {icon && <span className="absolute left-3 top-1/2 -translate-y-1/2 text-[var(--muted)]">{icon}</span>}
         <input
           className={clsx(
-            'w-full rounded-lg border-2 border-gray-300 px-4 py-2 dark:border-gray-600',
-            'transition-colors focus:border-primary-500 focus:outline-none dark:bg-gray-800 dark:text-white dark:focus:border-primary-400',
+            'form-field',
             icon && 'pl-10',
-            error && 'border-red-500',
+            error && 'border-[var(--danger)]',
             className
           )}
           {...props}
         />
       </div>
-      {error && <p className="mt-1 text-sm text-red-500">{error}</p>}
+      {error && <p className="mt-1 text-sm text-[var(--danger)]">{error}</p>}
     </div>
   );
 };
@@ -109,10 +111,10 @@ interface CardProps {
 export const Card = ({ children, className = '', hoverable = false }: CardProps) => {
   return (
     <motion.div
-      whileHover={hoverable ? { translateY: -4 } : {}}
+      whileHover={hoverable ? { translateY: -3 } : {}}
       className={clsx(
-        'rounded-2xl border border-gray-200 bg-white p-6 shadow-lg dark:border-gray-700 dark:bg-gray-800',
-        hoverable && 'cursor-pointer transition-all duration-300',
+        'surface-panel p-5',
+        hoverable && 'cursor-pointer transition',
         className
       )}
     >
@@ -136,17 +138,17 @@ export const Modal = ({ isOpen, onClose, title, children }: ModalProps) => {
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
       exit={{ opacity: 0 }}
-      className="fixed inset-0 z-50 flex items-center justify-center bg-black/50"
+      className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 px-4"
       onClick={onClose}
     >
       <motion.div
-        initial={{ scale: 0.9, opacity: 0 }}
+        initial={{ scale: 0.96, opacity: 0 }}
         animate={{ scale: 1, opacity: 1 }}
-        exit={{ scale: 0.9, opacity: 0 }}
-        className="w-full max-w-md rounded-2xl bg-white p-8 shadow-xl dark:bg-gray-800"
-        onClick={(e) => e.stopPropagation()}
+        exit={{ scale: 0.96, opacity: 0 }}
+        className="surface-panel w-full max-w-md p-6"
+        onClick={(event) => event.stopPropagation()}
       >
-        {title && <h2 className="mb-4 text-2xl font-bold dark:text-white">{title}</h2>}
+        {title && <h2 className="mb-4 text-xl font-bold text-[var(--text)]">{title}</h2>}
         {children}
       </motion.div>
     </motion.div>
@@ -154,9 +156,5 @@ export const Modal = ({ isOpen, onClose, title, children }: ModalProps) => {
 };
 
 export const LoadingSpinner = () => (
-  <motion.div
-    animate={{ rotate: 360 }}
-    transition={{ duration: 1, repeat: Infinity, ease: 'linear' }}
-    className="h-8 w-8 rounded-full border-4 border-primary-600 border-t-transparent"
-  />
+  <Loader2 className="h-8 w-8 animate-spin text-[var(--primary)]" />
 );

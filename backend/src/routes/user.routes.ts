@@ -5,6 +5,7 @@ import {
   getDoctors,
   getDoctorProfile,
 } from '../controllers/user.controller';
+import { findNearbyDoctors, recommendDoctors } from '../controllers/discovery.controller';
 import { protect } from '../middlewares/auth.middleware';
 import { asyncHandler } from '../middlewares/error.middleware';
 
@@ -19,6 +20,8 @@ router
 
 // Public doctor routes
 router.get('/doctors', asyncHandler(getDoctors));
+router.get('/doctors/nearby', asyncHandler(findNearbyDoctors));
+router.get('/doctors/recommendations', asyncHandler(recommendDoctors));
 router.get('/doctors/:id', asyncHandler(getDoctorProfile));
 
 export default router;

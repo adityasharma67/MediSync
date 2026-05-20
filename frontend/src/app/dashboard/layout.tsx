@@ -77,10 +77,10 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
 
   if (isCheckingAuth) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gray-50 dark:bg-gray-900">
-        <div className="flex flex-col items-center gap-3 rounded-2xl border border-gray-200 bg-white px-6 py-5 shadow-sm dark:border-gray-800 dark:bg-gray-900">
-          <div className="h-8 w-8 animate-spin rounded-full border-2 border-primary-500 border-t-transparent" />
-          <p className="text-sm text-gray-600 dark:text-gray-400">Checking your session...</p>
+      <div className="app-shell flex min-h-screen items-center justify-center">
+        <div className="surface-panel flex flex-col items-center gap-3 px-6 py-5">
+          <div className="h-8 w-8 animate-spin rounded-full border-2 border-[var(--primary)] border-t-transparent" />
+          <p className="text-sm text-[var(--muted)]">Checking your session...</p>
         </div>
       </div>
     );

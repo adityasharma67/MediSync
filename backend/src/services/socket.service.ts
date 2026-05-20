@@ -43,6 +43,12 @@ class WebRTCSignalingService {
         logger.info(`User ${data.userId} identified with socket ${socket.id}`);
       });
 
+      socket.on('auth:bind-user', (userId: string) => {
+        this.userSockets.set(userId, socket.id);
+        this.socketUsers.set(socket.id, userId);
+        logger.info(`User ${userId} bound to socket ${socket.id}`);
+      });
+
       // Join video call room
       socket.on('join-room', (data: { appointmentId: string; userId: string; userName: string; role: 'doctor' | 'patient' }) => {
         this.handleJoinRoom(socket, data);

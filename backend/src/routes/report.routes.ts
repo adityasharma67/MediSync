@@ -9,4 +9,6 @@ router.route('/')
   .post(protect, asyncHandler(analyzeReport))
   .get(protect, asyncHandler(getMyReports));
 
+router.post('/analyze', protect, asyncHandler(analyzeReport));
+
 export default router;

@@ -6,7 +6,9 @@ import { getConversations, sendMessage, startConversation } from '../controllers
 const router = express.Router();
 
 router.get('/', protect, asyncHandler(getConversations));
+router.get('/conversations', protect, asyncHandler(getConversations));
 router.post('/', protect, asyncHandler(startConversation));
+router.post('/:id', protect, asyncHandler(sendMessage));
 router.post('/:id/messages', protect, asyncHandler(sendMessage));
 
 export default router;

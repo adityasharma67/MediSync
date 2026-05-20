@@ -3,10 +3,15 @@ import recommendationService from '../services/recommendation.service';
 import geoService from '../services/geo.service';
 
 export const recommendDoctors = async (req: Request, res: Response) => {
-  const symptoms = Array.isArray(req.body.symptoms) ? req.body.symptoms : [];
+  const rawSymptoms = req.body.symptoms ?? req.query.symptoms;
+  const symptoms = Array.isArray(rawSymptoms)
+    ? rawSymptoms
+    : typeof rawSymptoms === 'string'
+      ? rawSymptoms.split(',').map((symptom) => symptom.trim()).filter(Boolean)
+      : [];
   const recommendations = await recommendationService.recommendDoctors({
     symptoms,
-    limit: req.body.limit,
+    limit: Number(req.body.limit ?? req.query.limit) || undefined,
   });
 
   res.json(recommendations);

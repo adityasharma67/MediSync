@@ -88,8 +88,8 @@ export default function DashboardPage() {
     <DashboardLayout requiredRole="patient">
       <div className="space-y-8">
         <div>
-          <h1 className="text-3xl font-bold text-gray-900 dark:text-white">Health Timeline Dashboard</h1>
-          <p className="mt-2 text-sm text-gray-600 dark:text-gray-400">
+          <h1 className="text-3xl font-bold text-[var(--text)]">Health Timeline Dashboard</h1>
+          <p className="mt-2 text-sm text-[var(--muted)]">
             Track appointments, prescriptions, reports, nearby doctors, and AI-generated report insights in one place.
           </p>
         </div>
@@ -98,12 +98,12 @@ export default function DashboardPage() {
           {stats.map((item) => (
             <Card key={item.label}>
               <div className="flex items-center gap-4">
-                <div className="rounded-2xl bg-primary-100 p-3 text-primary-600 dark:bg-primary-900/20 dark:text-primary-300">
+                <div className="rounded-lg bg-[var(--primary-soft)] p-3 text-[var(--primary)]">
                   <item.icon className="h-5 w-5" />
                 </div>
                 <div>
-                  <p className="text-sm text-gray-500 dark:text-gray-400">{item.label}</p>
-                  <p className="text-2xl font-bold text-gray-900 dark:text-white">{item.value}</p>
+                  <p className="text-sm text-[var(--muted)]">{item.label}</p>
+                  <p className="text-2xl font-bold text-[var(--text)]">{item.value}</p>
                 </div>
               </div>
             </Card>
@@ -114,19 +114,19 @@ export default function DashboardPage() {
           <Card>
             <div className="mb-4 flex items-center justify-between">
               <div>
-                <h2 className="text-xl font-semibold text-gray-900 dark:text-white">Chronological Medical History</h2>
-                <p className="text-sm text-gray-600 dark:text-gray-400">Appointments, reports, and prescriptions in one timeline.</p>
+                <h2 className="text-xl font-semibold text-[var(--text)]">Chronological Medical History</h2>
+                <p className="text-sm text-[var(--muted)]">Appointments, reports, and prescriptions in one timeline.</p>
               </div>
               <Button href="/appointments/book" variant="outline">New Booking</Button>
             </div>
             <div className="space-y-4">
               {timeline.map((item) => (
-                <div key={`${item.type}-${item.id}`} className="flex gap-4 rounded-2xl border border-gray-200 p-4 dark:border-gray-700">
-                  <div className="mt-1 h-3 w-3 rounded-full bg-primary-500" />
+                <div key={`${item.type}-${item.id}`} className="flex gap-4 rounded-lg border border-[var(--border)] bg-[var(--surface-strong)] p-4">
+                  <div className="mt-1 h-3 w-3 rounded-full bg-[var(--primary)]" />
                   <div>
-                    <p className="font-semibold text-gray-900 dark:text-white">{item.title}</p>
-                    <p className="text-sm capitalize text-gray-500 dark:text-gray-400">{item.type}</p>
-                    <p className="text-xs text-gray-500 dark:text-gray-500">{new Date(item.timestamp).toLocaleString()}</p>
+                    <p className="font-semibold text-[var(--text)]">{item.title}</p>
+                    <p className="text-sm capitalize text-[var(--muted)]">{item.type}</p>
+                    <p className="text-xs text-[var(--muted)]">{new Date(item.timestamp).toLocaleString()}</p>
                   </div>
                 </div>
               ))}
@@ -136,16 +136,16 @@ export default function DashboardPage() {
           <div className="space-y-6">
             <Card>
               <div className="mb-4 flex items-center gap-2">
-                <WandSparkles className="h-5 w-5 text-primary-500" />
-                <h2 className="text-lg font-semibold text-gray-900 dark:text-white">AI Report Analyzer</h2>
+                <WandSparkles className="h-5 w-5 text-[var(--primary)]" />
+                <h2 className="text-lg font-semibold text-[var(--text)]">AI Report Analyzer</h2>
               </div>
-              <label className="flex cursor-pointer flex-col items-center gap-3 rounded-2xl border border-dashed border-gray-300 px-4 py-6 text-center dark:border-gray-700">
-                <Upload className="h-6 w-6 text-gray-500" />
-                <span className="text-sm text-gray-600 dark:text-gray-400">
+              <label className="flex cursor-pointer flex-col items-center gap-3 rounded-lg border border-dashed border-[var(--border)] bg-[var(--surface-strong)] px-4 py-6 text-center">
+                <Upload className="h-6 w-6 text-[var(--muted)]" />
+                <span className="text-sm text-[var(--muted)]">
                   Upload a report file and store simple-language insights
                 </span>
                 <input type="file" className="hidden" onChange={handleUpload} />
-                <span className="rounded-lg bg-primary-600 px-4 py-2 text-sm font-semibold text-white">
+                <span className="rounded-lg bg-[var(--primary)] px-4 py-2 text-sm font-semibold text-white">
                   {uploading ? 'Analyzing...' : 'Choose Report'}
                 </span>
               </label>
@@ -153,21 +153,21 @@ export default function DashboardPage() {
 
             <Card>
               <div className="mb-4 flex items-center gap-2">
-                <MapPinned className="h-5 w-5 text-sky-500" />
-                <h2 className="text-lg font-semibold text-gray-900 dark:text-white">Geo-Based Doctor Finder</h2>
+                <MapPinned className="h-5 w-5 text-[var(--accent)]" />
+                <h2 className="text-lg font-semibold text-[var(--text)]">Geo-Based Doctor Finder</h2>
               </div>
               <div className="space-y-3">
                 {nearbyDoctors.slice(0, 3).map((doctor) => (
-                  <div key={doctor._id} className="rounded-xl border border-gray-200 p-3 dark:border-gray-700">
-                    <p className="font-semibold text-gray-900 dark:text-white">{doctor.name}</p>
-                    <p className="text-sm text-gray-600 dark:text-gray-400">{doctor.specialization}</p>
-                    <p className="text-xs text-gray-500 dark:text-gray-500">
+                  <div key={doctor._id} className="rounded-lg border border-[var(--border)] bg-[var(--surface-strong)] p-3">
+                    <p className="font-semibold text-[var(--text)]">{doctor.name}</p>
+                    <p className="text-sm text-[var(--muted)]">{doctor.specialization}</p>
+                    <p className="text-xs text-[var(--muted)]">
                       {doctor.doctorProfile?.location?.address || 'Location available in doctor profile'}
                     </p>
                   </div>
                 ))}
               </div>
-              <div className="mt-4 overflow-hidden rounded-2xl border border-gray-200 dark:border-gray-700">
+              <div className="mt-4 overflow-hidden rounded-lg border border-[var(--border)]">
                 <iframe
                   title="Google map view"
                   src={`https://www.google.com/maps?q=${nearbyDoctors[0]?.doctorProfile?.location?.lat || 28.6139},${nearbyDoctors[0]?.doctorProfile?.location?.lng || 77.209}&z=12&output=embed`}
@@ -178,12 +178,12 @@ export default function DashboardPage() {
             </Card>
 
             <Card>
-              <h2 className="mb-4 text-lg font-semibold text-gray-900 dark:text-white">Latest Report Insights</h2>
+              <h2 className="mb-4 text-lg font-semibold text-[var(--text)]">Latest Report Insights</h2>
               <div className="space-y-3">
                 {reports.slice(0, 2).map((report) => (
-                  <div key={report._id} className="rounded-xl bg-gray-50 p-4 dark:bg-gray-900/40">
-                    <p className="font-semibold text-gray-900 dark:text-white">{report.title}</p>
-                    <p className="mt-2 text-sm text-gray-600 dark:text-gray-400">{report.plainLanguageSummary}</p>
+                  <div key={report._id} className="rounded-lg bg-[var(--surface-strong)] p-4">
+                    <p className="font-semibold text-[var(--text)]">{report.title}</p>
+                    <p className="mt-2 text-sm text-[var(--muted)]">{report.plainLanguageSummary}</p>
                   </div>
                 ))}
               </div>

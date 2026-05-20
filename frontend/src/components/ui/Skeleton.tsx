@@ -14,11 +14,11 @@ export function SkeletonLoader() {
 
 export function SkeletonCard() {
   return (
-    <div className="glass p-6 rounded-2xl space-y-4">
+    <div className="surface-panel space-y-4 p-5">
       <SkeletonLoader />
       <div className="space-y-2">
-        <div className="h-4 bg-gray-200 dark:bg-gray-700 rounded w-3/4" />
-        <div className="h-4 bg-gray-200 dark:bg-gray-700 rounded w-1/2" />
+        <div className="skeleton h-4 w-3/4" />
+        <div className="skeleton h-4 w-1/2" />
       </div>
     </div>
   );
@@ -30,7 +30,7 @@ export function SkeletonTable({ rows = 5, cols = 4 }) {
       {/* Header */}
       <div className="grid gap-4" style={{ gridTemplateColumns: `repeat(${cols}, 1fr)` }}>
         {Array.from({ length: cols }).map((_, i) => (
-          <div key={i} className="h-4 bg-gray-300 dark:bg-gray-600 rounded w-full" />
+          <div key={i} className="skeleton h-4 w-full" />
         ))}
       </div>
       
@@ -44,7 +44,7 @@ export function SkeletonTable({ rows = 5, cols = 4 }) {
           {Array.from({ length: cols }).map((_, colIdx) => (
             <div
               key={colIdx}
-              className="h-8 bg-gray-200 dark:bg-gray-700 rounded w-full"
+              className="skeleton h-8 w-full"
             />
           ))}
         </div>
@@ -55,7 +55,7 @@ export function SkeletonTable({ rows = 5, cols = 4 }) {
 
 export function SkeletonAvatar() {
   return (
-    <div className="w-12 h-12 bg-gray-200 dark:bg-gray-700 rounded-full animate-pulse" />
+    <div className="skeleton h-12 w-12 rounded-full" />
   );
 }
 
@@ -65,7 +65,7 @@ export function SkeletonText({ lines = 3 }) {
       {Array.from({ length: lines }).map((_, i) => (
         <div
           key={i}
-          className="h-4 bg-gray-200 dark:bg-gray-700 rounded"
+          className="skeleton h-4"
           style={{ width: i === lines - 1 ? "80%" : "100%" }}
         />
       ))}
